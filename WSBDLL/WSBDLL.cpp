@@ -43,6 +43,9 @@ typedef long(WINAPI *setcardinfo_str)(long, long, long, LPSTR, __int64*, long*, 
 typedef long(WINAPI *gettac)(long, LPSTR);
 //获取十次交易记录
 typedef long(WINAPI *readrecords)(CONSUMEINFO*);
+
+//扣款,PSAM_ID使用LPSTR类型
+typedef long(WINAPI *setcardinfo_temp)(long, long, long, LPSTR, LPSTR, long*, char*,int);
 /*
 	定义居民健康卡接口函数
 */
@@ -139,6 +142,9 @@ typedef int(WINAPI *get_edindex)(HANDLE);
 //锁定人员信息初始化
 typedef int(WINAPI *lockinfo)(HANDLE);
 
+//市立医院定制接口，用来解决读卡器卡死问题
+typedef int(WINAPI *getinfo_his)(HANDLE,char*,long*,char*,char*,char*,char*);
+
 /*========================================实现城市通接口=======================================================*/
 
 /*
@@ -156,7 +162,7 @@ typedef int(WINAPI *lockinfo)(HANDLE);
 		-4			向服务器发送数据失败
 		0			成功
 */
-long GetBlackList(const char *ip, short port, long uid, char *recv_buf)
+long _stdcall GetBlackList(const char *ip, short port, long uid, char *recv_buf)
 {
 	const int BUF_SIZE = 64;
 	WSADATA         wsd;            //WSADATA变量  
@@ -206,7 +212,7 @@ long GetBlackList(const char *ip, short port, long uid, char *recv_buf)
 }
 
 //获取黑名单验证（加超时时间限制）
-long GetBlack_limit(const char *ip, short port, long uid, char *recv_buf)
+long _stdcall GetBlack_limit(const char *ip, short port, long uid, char *recv_buf)
 {
 	const int BUF_SIZE = 64;
 	WSADATA         wsd;            //WSADATA变量  
@@ -293,8 +299,58 @@ long GetBlack_limit(const char *ip, short port, long uid, char *recv_buf)
 		return  0;
 	}
 }
+//发送POST请求
+long _stdcall SendPostRequest(const char *ip, short port, long uid, char *recv_buf)
+{
+	const int BUF_SIZE = 64;
+	WSADATA         wsd;            //WSADATA变量  
+	SOCKET          sHost;          //服务器套接字  
+	SOCKADDR_IN     servAddr;       //服务器地址  
+	char            buf[BUF_SIZE];  //接收数据缓冲区  
+	int             retVal;         //返回值  
+	if (WSAStartup(MAKEWORD(2, 2), &wsd) != 0)
+	{
+		return -1;		//WSA启动失败
+	}
+	sHost = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (INVALID_SOCKET == sHost)
+	{
+		WSACleanup();
+		return -2;		//socket failed
+	}
+	//服务器套接字地址
+	servAddr.sin_family = AF_INET;
+	servAddr.sin_port = htons(port);
+	servAddr.sin_addr.s_addr = inet_addr(ip);
+
+	//连接服务器
+	retVal = connect(sHost, (LPSOCKADDR)&servAddr, sizeof(servAddr));
+	if (SOCKET_ERROR == retVal)
+	{
+		closesocket(sHost);
+		WSACleanup();
+		return -3;		//连接失败
+	}
+	//向服务器发送数据
+	ZeroMemory(buf, BUF_SIZE);
+	itoa(uid, buf, 10);
+	//strcpy(buf, asn);	//不安全
+	retVal = send(sHost, buf, strlen(buf), 0);
+	if (SOCKET_ERROR == retVal)
+	{
+		closesocket(sHost);
+		WSACleanup();
+		return -4;		//发送失败
+	}
+	char* recvbuf = recv_buf;
+	recv(sHost, recvbuf, 1, 0);
+	closesocket(sHost); //关闭套接字  
+	WSACleanup();       //释放套接字资源  
+	return  0;
+}
+
 //读取配置文件IP地址
-LPSTR GetIPAddrINI()
+LPSTR _stdcall GetIPAddrINI()
 {
 	LPSTR LP_PATH = new char[MAX_PATH];
 	LPSTR ipaddr = new char[20];
@@ -304,7 +360,7 @@ LPSTR GetIPAddrINI()
 	return ipaddr;
 }
 //读取配置文件port
-short GetPortINI()
+short  GetPortINI()
 {
 	LPSTR LP_PATH = new char[MAX_PATH];
 	strcpy(LP_PATH, "./ChgCity.ini");
@@ -370,7 +426,7 @@ long VerifiBlackCard_UID(long u_id)
 	}
 }
 //打开连接
-long  OpenCom()
+long _stdcall OpenCom()
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -402,7 +458,7 @@ void  CloseCom()
 	FreeLibrary(hdllInst);
 }
 //读取用户信息
-long  CapGetNBCardInfo(CUSTOMERINFO *info)
+long _stdcall  CapGetNBCardInfo(CUSTOMERINFO *info)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -422,13 +478,11 @@ long  CapGetNBCardInfo(CUSTOMERINFO *info)
 			//CUSTOMERINFO *ctm_info;
 			long status_getinfo = GetCardInfo(info);
 			return status_getinfo;
-
-
 		}
 	}
 }
 //寻卡
-long  CapNBQueryCard(long *UID)
+long _stdcall CapNBQueryCard(long *UID)
 {
 	HMODULE  hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -512,7 +566,7 @@ long  CapNBQueryCard(long *UID)
 	}
 }
 //扣款
-long  CapSetNBCardInfo(long objNo, long UID, long opFare, LPSTR jyDT, __int64 *psamID, long *psamJyNo, long *tac)
+long _stdcall CapSetNBCardInfo(long objNo, long UID, long opFare, LPSTR jyDT, __int64 *psamID, long *psamJyNo, long *tac)
 {
 	if (is_black != 1)
 	{
@@ -551,8 +605,50 @@ long  CapSetNBCardInfo(long objNo, long UID, long opFare, LPSTR jyDT, __int64 *p
 		}
 	}
 }
+//扣款,PSAM_ID使用LPSTR
+long _stdcall  CapSetNBCardInfo_temp(long objNo, long UID, long opFare, LPSTR jyDT, LPSTR psamID, long *psamJyNo, char *tac,int redix)
+{
+	if (is_black != 1)
+	{
+		return -777;
+	}
+	else
+	{
+		HMODULE hdllInst = LoadLibrary(CONDLL);
+		if (hdllInst == NULL)
+		{
+			return -1801;
+		}
+		else
+		{
+			setcardinfo_str Set_CardInfo = (setcardinfo_str)GetProcAddress(hdllInst, "CapSetNBCardInfo_str");
+			if (Set_CardInfo == NULL)
+			{
+				FreeLibrary(hdllInst);
+				return -1701;
+			}
+			else
+			{
+				long _objNo = objNo;
+				long _UID = UID;
+				long _opFare = opFare;
+				LPSTR _jyDT = jyDT;
+				char temp[100];
+				strcpy(temp, psamID);
+				__int64 _psamID = atoll(temp);
+				long* _psamJyNo = psamJyNo;
+				char* _tac = tac;
+				long status_setinfo = Set_CardInfo(_objNo, _UID, _opFare, _jyDT, &_psamID, _psamJyNo, _tac,redix);
+				char ch_temp[254];
+				psamID = _i64toa(_psamID, ch_temp, 10);
+				FreeLibrary(hdllInst);
+				return status_setinfo;
+			}
+		}
+	}
+}
 //扣款（加次/日限额功能）
-long  CapSetNBCardInfo_LMT(long objNo, long UID, long opFare, LPSTR jyDT, long onceLmt, long dayLmt, __int64 *psamID, long *psamJyNo, long *tac)
+long _stdcall CapSetNBCardInfo_LMT(long objNo, long UID, long opFare, LPSTR jyDT, long onceLmt, long dayLmt, __int64 *psamID, long *psamJyNo, long *tac)
 {
 	if (is_black != 1)
 	{
@@ -586,7 +682,7 @@ long  CapSetNBCardInfo_LMT(long objNo, long UID, long opFare, LPSTR jyDT, long o
 	}
 }
 //5.7.	扣款（超限额后验证密码消费）
-long  CapSetNBCardInfo_Verify(long objNo, long UID, long opFare, LPSTR jyDT, long onceLmt, long dayLmt, LPSTR pwd, __int64 *psamID, long *psamJyNo, long *tac)
+long _stdcall CapSetNBCardInfo_Verify(long objNo, long UID, long opFare, LPSTR jyDT, long onceLmt, long dayLmt, LPSTR pwd, __int64 *psamID, long *psamJyNo, long *tac)
 {
 	if (is_black != 1)
 	{
@@ -618,7 +714,7 @@ long  CapSetNBCardInfo_Verify(long objNo, long UID, long opFare, LPSTR jyDT, lon
 	}
 }
 //5.8.	更新日累计消费
-long  CapUpdateNBCardStatus(long opFare, LPSTR jyDT)
+long _stdcall CapUpdateNBCardStatus(long opFare, LPSTR jyDT)
 {
 	if (is_black != 1)
 	{
@@ -650,7 +746,7 @@ long  CapUpdateNBCardStatus(long opFare, LPSTR jyDT)
 	}
 }
 //5.9.	更新卡次/日限额
-long  CapSetNBCardStatus(long onceLmt, long dayLmt)
+long _stdcall CapSetNBCardStatus(long onceLmt, long dayLmt)
 {
 	if (is_black != 1)
 	{
@@ -681,7 +777,7 @@ long  CapSetNBCardStatus(long onceLmt, long dayLmt)
 	}
 }
 //5.10.	设置密码
-long  CapSetCardPwd(LPSTR oldPwd, LPSTR newPwd)
+long _stdcall CapSetCardPwd(LPSTR oldPwd, LPSTR newPwd)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -705,7 +801,7 @@ long  CapSetCardPwd(LPSTR oldPwd, LPSTR newPwd)
 	}
 }
 //5.11.	充值初始化
-long  CapChargeInit(long objNo, long fare, __int64 *termId, long *bFare, long *no, long *random, long *mac1)
+long _stdcall CapChargeInit(long objNo, long fare, __int64 *termId, long *bFare, long *no, long *random, long *mac1)
 {
 	if (is_black)
 	{
@@ -736,7 +832,7 @@ long  CapChargeInit(long objNo, long fare, __int64 *termId, long *bFare, long *n
 	}
 }
 //充值
-long  CapCharge(LPSTR dt, LPSTR mac2, LPSTR tac)
+long _stdcall CapCharge(LPSTR dt, LPSTR mac2, LPSTR tac)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -760,7 +856,7 @@ long  CapCharge(LPSTR dt, LPSTR mac2, LPSTR tac)
 	}
 }
 //5.12.	扣款（TAC返回字符串）
-long  CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT, __int64 *psamID, long *psamJyNo, char *tac, int redix)
+long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT, __int64 *psamID, long *psamJyNo, char *tac, int redix)
 {
 	if (is_black)
 	{
@@ -791,7 +887,7 @@ long  CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT, __int6
 	}
 }
 //5.13.	获取tac值
-long  CapGetConsumeTac(long no, LPTSTR tac)
+long _stdcall CapGetConsumeTac(long no, LPTSTR tac)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -816,7 +912,7 @@ long  CapGetConsumeTac(long no, LPTSTR tac)
 	}
 }
 //获取十次交易记录
-long CapReadRecords(CONSUMEINFO* info)
+long _stdcall CapReadRecords(CONSUMEINFO* info)
 {
 	HMODULE hinstance = LoadLibrary(CONDLL);
 	if (hinstance == NULL)
@@ -843,15 +939,31 @@ long CapReadRecords(CONSUMEINFO* info)
 
 /*========================================实现居民健康卡接口=======================================================*/
 
-HANDLE  OpenDevice(int port)
+HANDLE _stdcall OpenDevice(int port)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
-	opendevice open_device = (opendevice)GetProcAddress(hdllInst, "OpenDevice");
-	HANDLE hdev = open_device(port);
-	FreeLibrary(hdllInst);
-	return hdev;
+	HMODULE hinstance = LoadLibrary(CONDLL);
+	if (hinstance == NULL)
+	{
+		return (HANDLE)-1;
+	}
+	else
+	{
+		opendevice OPDV = (opendevice)GetProcAddress(hinstance, "OpenDevice");
+		if (OPDV == NULL)
+		{
+			FreeLibrary(hinstance);
+			return (HANDLE)-2;
+		}
+		else
+		{
+			HANDLE h_status = OPDV(port);
+			FreeLibrary(hinstance);
+			return h_status;
+		}
+
+	}
 }
-int  CloseDevice(HANDLE hdev)
+int _stdcall CloseDevice(HANDLE hdev)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -876,7 +988,7 @@ int  CloseDevice(HANDLE hdev)
 	}
 
 }
-int  PowerOn(HANDLE hdev, int slot, char* atr)
+int _stdcall PowerOn(HANDLE hdev, int slot, char* atr)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -901,7 +1013,7 @@ int  PowerOn(HANDLE hdev, int slot, char* atr)
 		}
 	}
 }
-int  SendAPDU(HANDLE hdev, unsigned char byslot, unsigned char* pbyccommand, unsigned long len, unsigned char* pbyrcommand, int* pnrs)
+int _stdcall SendAPDU(HANDLE hdev, unsigned char byslot, unsigned char* pbyccommand, unsigned long len, unsigned char* pbyrcommand, int* pnrs)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -930,7 +1042,7 @@ int  SendAPDU(HANDLE hdev, unsigned char byslot, unsigned char* pbyccommand, uns
 		}
 	}
 }
-int  iR_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, char* fkjgdm, char* fkjgzs, char* fksj, char* kh, char* aqm, char* xpxlh, char* yycsdm)
+int _stdcall iR_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, char* fkjgdm, char* fkjgzs, char* fksj, char* kh, char* aqm, char* xpxlh, char* yycsdm)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -953,7 +1065,7 @@ int  iR_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, char* fkj
 		}
 	}
 }
-int  iW_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, char* fkjgdm, char* fkjgzs, char* fksj, char* kh, char* aqm, char* xpxlh, char* yycsdm)
+int _stdcall iW_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, char* fkjgdm, char* fkjgzs, char* fksj, char* kh, char* aqm, char* xpxlh, char* yycsdm)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -977,7 +1089,7 @@ int  iW_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, char* fkj
 		}
 	}
 }
-int  iR_DDF1EF06Info(HANDLE hdev, char* xm, char* xb, char* mz, char* csrq, char* sfzh)
+int _stdcall iR_DDF1EF06Info(HANDLE hdev, char* xm, char* xb, char* mz, char* csrq, char* sfzh)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1001,7 +1113,7 @@ int  iR_DDF1EF06Info(HANDLE hdev, char* xm, char* xb, char* mz, char* csrq, char
 		}
 	}
 }
-int  iW_DDF1EF06Info(HANDLE hdev, char* xm, char* xb, char* mz, char* csrq, char* sfzh)
+int _stdcall iW_DDF1EF06Info(HANDLE hdev, char* xm, char* xb, char* mz, char* csrq, char* sfzh)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1025,7 +1137,7 @@ int  iW_DDF1EF06Info(HANDLE hdev, char* xm, char* xb, char* mz, char* csrq, char
 		}
 	}
 }
-int  iR_DDF1EF07Info(HANDLE hdev, char* zp_path)
+int _stdcall iR_DDF1EF07Info(HANDLE hdev, char* zp_path)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1049,7 +1161,7 @@ int  iR_DDF1EF07Info(HANDLE hdev, char* zp_path)
 		}
 	}
 }
-int  iW_DDF1EF07Info(HANDLE hdev, char* zp_path)
+int _stdcall iW_DDF1EF07Info(HANDLE hdev, char* zp_path)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1073,7 +1185,7 @@ int  iW_DDF1EF07Info(HANDLE hdev, char* zp_path)
 		}
 	}
 }
-int  iR_DDF1EF08Info(HANDLE hdev, char* kyxq, char* brdh1, char* brdh2, char* ylfs1, char* ylfs2, char* ylfs3)
+int _stdcall iR_DDF1EF08Info(HANDLE hdev, char* kyxq, char* brdh1, char* brdh2, char* ylfs1, char* ylfs2, char* ylfs3)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1097,7 +1209,7 @@ int  iR_DDF1EF08Info(HANDLE hdev, char* kyxq, char* brdh1, char* brdh2, char* yl
 		}
 	}
 }
-int  iW_DDF1EF08Info(HANDLE hdev, char* kyxq, char* brdh1, char* brdh2, char* ylfs1, char* ylfs2, char* ylfs3)
+int _stdcall iW_DDF1EF08Info(HANDLE hdev, char* kyxq, char* brdh1, char* brdh2, char* ylfs1, char* ylfs2, char* ylfs3)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1121,7 +1233,7 @@ int  iW_DDF1EF08Info(HANDLE hdev, char* kyxq, char* brdh1, char* brdh2, char* yl
 		}
 	}
 }
-int  iR_DF01EF05Info(HANDLE hdev, char* dzlb1, char* dz1, char* dzlb2, char* dz2)
+int _stdcall iR_DF01EF05Info(HANDLE hdev, char* dzlb1, char* dz1, char* dzlb2, char* dz2)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1145,7 +1257,7 @@ int  iR_DF01EF05Info(HANDLE hdev, char* dzlb1, char* dz1, char* dzlb2, char* dz2
 		}
 	}
 }
-int  iW_DF01EF05Info(HANDLE hdev, char* dzlb1, char* dz1, char* dzlb2, char* dz2)
+int _stdcall iW_DF01EF05Info(HANDLE hdev, char* dzlb1, char* dz1, char* dzlb2, char* dz2)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1168,7 +1280,7 @@ int  iW_DF01EF05Info(HANDLE hdev, char* dzlb1, char* dz1, char* dzlb2, char* dz2
 		}
 	}
 }
-int  iR_DF01EF06Info(HANDLE hdev, char* xm1, char* gx1, char* dh1, char* xm2, char* gx2, char* dh2, char* xm3, char* gx3, char* dh3)
+int _stdcall iR_DF01EF06Info(HANDLE hdev, char* xm1, char* gx1, char* dh1, char* xm2, char* gx2, char* dh2, char* xm3, char* gx3, char* dh3)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1201,7 +1313,7 @@ int  iR_DF01EF06Info(HANDLE hdev, char* xm1, char* gx1, char* dh1, char* xm2, ch
 		}
 	}
 }
-int  iW_DF01EF06Info(HANDLE hdev, char* xm1, char* gx1, char* dh1, char* xm2, char* gx2, char* dh2, char* xm3, char* gx3, char* dh3)
+int _stdcall iW_DF01EF06Info(HANDLE hdev, char* xm1, char* gx1, char* dh1, char* xm2, char* gx2, char* dh2, char* xm3, char* gx3, char* dh3)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1224,7 +1336,7 @@ int  iW_DF01EF06Info(HANDLE hdev, char* xm1, char* gx1, char* dh1, char* xm2, ch
 		}
 	}
 }
-int  iR_DF01EF07Info(HANDLE hdev, char* whcd, char* hyzk, char* zy)
+int _stdcall iR_DF01EF07Info(HANDLE hdev, char* whcd, char* hyzk, char* zy)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1247,7 +1359,7 @@ int  iR_DF01EF07Info(HANDLE hdev, char* whcd, char* hyzk, char* zy)
 		}
 	}
 }
-int  iW_DF01EF07Info(HANDLE hdev, char* whcd, char* hyzk, char* zy)
+int _stdcall iW_DF01EF07Info(HANDLE hdev, char* whcd, char* hyzk, char* zy)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1270,7 +1382,7 @@ int  iW_DF01EF07Info(HANDLE hdev, char* whcd, char* hyzk, char* zy)
 		}
 	}
 }
-int  iR_DF01EF08Info(HANDLE hdev, char* zjlb, char* zjhm, char* jkdah,char* xnhzh)
+int _stdcall iR_DF01EF08Info(HANDLE hdev, char* zjlb, char* zjhm, char* jkdah,char* xnhzh)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1293,7 +1405,7 @@ int  iR_DF01EF08Info(HANDLE hdev, char* zjlb, char* zjhm, char* jkdah,char* xnhz
 		}
 	}
 }
-int  iW_DF01EF08Info(HANDLE hdev, char* zjlb, char* zjhm, char* jkdah, char* xnhzh)
+int _stdcall iW_DF01EF08Info(HANDLE hdev, char* zjlb, char* zjhm, char* jkdah, char* xnhzh)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1316,7 +1428,7 @@ int  iW_DF01EF08Info(HANDLE hdev, char* zjlb, char* zjhm, char* jkdah, char* xnh
 		}
 	}
 }
-int  iR_DF02EF05Info(HANDLE hdev, char* abo, char* rh, char* xc, char* xzb, char* xnxgb, char* dxb, char* nxwl, char* tnb, char* qgy, char* tx, char* qgyz, char* qgqs, char* kzxyz, char* xzqbq, char* qtyxjs)
+int _stdcall iR_DF02EF05Info(HANDLE hdev, char* abo, char* rh, char* xc, char* xzb, char* xnxgb, char* dxb, char* nxwl, char* tnb, char* qgy, char* tx, char* qgyz, char* qgqs, char* kzxyz, char* xzqbq, char* qtyxjs)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1339,7 +1451,7 @@ int  iR_DF02EF05Info(HANDLE hdev, char* abo, char* rh, char* xc, char* xzb, char
 		}
 	}
 }
-int  iW_DF02EF05Info(HANDLE hdev, char* abo, char* rh, char* xc, char* xzb, char* xnxgb, char* dxb, char* nxwl, char* tnb, char* qgy, char* tx, char* qgyz, char* qgqs, char* kzxyz, char* xzqbq, char* qtyxjs)
+int _stdcall iW_DF02EF05Info(HANDLE hdev, char* abo, char* rh, char* xc, char* xzb, char* xnxgb, char* dxb, char* nxwl, char* tnb, char* qgy, char* tx, char* qgyz, char* qgqs, char* kzxyz, char* xzqbq, char* qtyxjs)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1362,7 +1474,7 @@ int  iW_DF02EF05Info(HANDLE hdev, char* abo, char* rh, char* xc, char* xzb, char
 		}
 	}
 }
-int  iR_DF02EF06Info(HANDLE hdev, char* jsb)
+int _stdcall iR_DF02EF06Info(HANDLE hdev, char* jsb)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1385,7 +1497,7 @@ int  iR_DF02EF06Info(HANDLE hdev, char* jsb)
 		}
 	}
 }
-int  iW_DF02EF06Info(HANDLE hdev, char* jsb)
+int _stdcall iW_DF02EF06Info(HANDLE hdev, char* jsb)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1408,7 +1520,7 @@ int  iW_DF02EF06Info(HANDLE hdev, char* jsb)
 		}
 	}
 }
-int  iR_DF02EF07Info(HANDLE hdev, int recordNo, char* gmwz, char* gmmc)
+int _stdcall iR_DF02EF07Info(HANDLE hdev, int recordNo, char* gmwz, char* gmmc)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1431,7 +1543,7 @@ int  iR_DF02EF07Info(HANDLE hdev, int recordNo, char* gmwz, char* gmmc)
 		}
 	}
 }
-int  iW_DF02EF07Info(HANDLE hdev, char* gmwz, char* gmmc)
+int _stdcall iW_DF02EF07Info(HANDLE hdev, char* gmwz, char* gmmc)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1454,7 +1566,7 @@ int  iW_DF02EF07Info(HANDLE hdev, char* gmwz, char* gmmc)
 		}
 	}
 }
-int  iR_DF02EF08Info(HANDLE hdev, int recordNo, char* jzmc, char* jzsj)
+int _stdcall iR_DF02EF08Info(HANDLE hdev, int recordNo, char* jzmc, char* jzsj)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1477,7 +1589,7 @@ int  iR_DF02EF08Info(HANDLE hdev, int recordNo, char* jzmc, char* jzsj)
 		}
 	}
 }
-int  iW_DF02EF08Info(HANDLE hdev, char* jzmc, char* jzsj)
+int _stdcall iW_DF02EF08Info(HANDLE hdev, char* jzmc, char* jzsj)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1500,7 +1612,7 @@ int  iW_DF02EF08Info(HANDLE hdev, char* jzmc, char* jzsj)
 		}
 	}
 }
-int  iR_DF03EF05Info(HANDLE hdev, char* jl1, char* jl2, char* jl3)
+int _stdcall iR_DF03EF05Info(HANDLE hdev, char* jl1, char* jl2, char* jl3)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1523,7 +1635,7 @@ int  iR_DF03EF05Info(HANDLE hdev, char* jl1, char* jl2, char* jl3)
 		}
 	}
 }
-int  iW_DF03EF05Info(HANDLE hdev, int recordNo)
+int _stdcall iW_DF03EF05Info(HANDLE hdev, int recordNo)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1546,7 +1658,7 @@ int  iW_DF03EF05Info(HANDLE hdev, int recordNo)
 		}
 	}
 }
-int  iErase_DF03EF05Info(HANDLE hdev, int recordNo)
+int _stdcall iErase_DF03EF05Info(HANDLE hdev, int recordNo)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1569,7 +1681,7 @@ int  iErase_DF03EF05Info(HANDLE hdev, int recordNo)
 		}
 	}
 }
-int  iR_DF03EF06Info(HANDLE hdev, char* mzbs1, char* mzbs2, char* mzbs3, char* mzbs4, char* mzbs5)
+int _stdcall iR_DF03EF06Info(HANDLE hdev, char* mzbs1, char* mzbs2, char* mzbs3, char* mzbs4, char* mzbs5)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1592,7 +1704,7 @@ int  iR_DF03EF06Info(HANDLE hdev, char* mzbs1, char* mzbs2, char* mzbs3, char* m
 		}
 	}
 }
-int  iW_DF03EF06Info(HANDLE hdev, int record)
+int _stdcall iW_DF03EF06Info(HANDLE hdev, int record)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1615,7 +1727,7 @@ int  iW_DF03EF06Info(HANDLE hdev, int record)
 		}
 	}
 }
-int  iErase_DF03EF06Info(HANDLE hdev, int record)
+int _stdcall iErase_DF03EF06Info(HANDLE hdev, int record)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1638,7 +1750,7 @@ int  iErase_DF03EF06Info(HANDLE hdev, int record)
 		}
 	}
 }
-int  iR_DF03EEInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, int nstyle)
+int _stdcall iR_DF03EEInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, int nstyle)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1661,7 +1773,7 @@ int  iR_DF03EEInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, in
 		}
 	}
 }
-int  iW_DF03EEInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, int nstyle)
+int _stdcall iW_DF03EEInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, int nstyle)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1684,7 +1796,7 @@ int  iW_DF03EEInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, in
 		}
 	}
 }
-int  iR_DF03EDInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, int nstyle)
+int _stdcall iR_DF03EDInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, int nstyle)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1707,7 +1819,7 @@ int  iR_DF03EDInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, in
 		}
 	}
 }
-int  iW_DF03EDInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, int nstyle)
+int _stdcall iW_DF03EDInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, int nstyle)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1730,7 +1842,7 @@ int  iW_DF03EDInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, in
 		}
 	}
 }
-int  SM3Digest(HANDLE hdev, BYTE* pbdata, int len, BYTE* pbhash, BYTE* pbhashlen)
+int _stdcall SM3Digest(HANDLE hdev, BYTE* pbdata, int len, BYTE* pbhash, BYTE* pbhashlen)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1753,7 +1865,7 @@ int  SM3Digest(HANDLE hdev, BYTE* pbdata, int len, BYTE* pbhash, BYTE* pbhashlen
 		}
 	}
 }
-int  VerifyPin(HANDLE hdev, char* szpin,BYTE* pwdretry)
+int _stdcall VerifyPin(HANDLE hdev, char* szpin,BYTE* pwdretry)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1776,7 +1888,7 @@ int  VerifyPin(HANDLE hdev, char* szpin,BYTE* pwdretry)
 		}
 	}
 }
-int  SM2SignHash(HANDLE hdev, BYTE* pbdata, int len, BYTE* pbhash, BYTE* pbhashlen)
+int _stdcall SM2SignHash(HANDLE hdev, BYTE* pbdata, int len, BYTE* pbhash, BYTE* pbhashlen)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1799,7 +1911,7 @@ int  SM2SignHash(HANDLE hdev, BYTE* pbdata, int len, BYTE* pbhash, BYTE* pbhashl
 		}
 	}
 }
-int  IReader_GetDeviceCSN(HANDLE hdev, char* info)
+int _stdcall IReader_GetDeviceCSN(HANDLE hdev, char* info)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst==NULL)
@@ -1822,7 +1934,7 @@ int  IReader_GetDeviceCSN(HANDLE hdev, char* info)
 		}
 	}
 }
-int  iReader_SAM_Public(HANDLE hdev, char* info)
+int _stdcall iReader_SAM_Public(HANDLE hdev, char* info)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1845,7 +1957,7 @@ int  iReader_SAM_Public(HANDLE hdev, char* info)
 		}
 	}
 }
-int  iReader_GetLastEEIndex(HANDLE hdev)
+int _stdcall iReader_GetLastEEIndex(HANDLE hdev)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1868,7 +1980,7 @@ int  iReader_GetLastEEIndex(HANDLE hdev)
 		}
 	}
 }
-int  iReader_GetLastEDIndex(HANDLE hdev)
+int _stdcall iReader_GetLastEDIndex(HANDLE hdev)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1891,7 +2003,7 @@ int  iReader_GetLastEDIndex(HANDLE hdev)
 		}
 	}
 }
-int  LockPersonalInfo(HANDLE hdev)
+int _stdcall LockPersonalInfo(HANDLE hdev)
 {
 	HMODULE hdllInst = LoadLibrary(CONDLL);
 	if (hdllInst == NULL)
@@ -1911,6 +2023,53 @@ int  LockPersonalInfo(HANDLE hdev)
 			int status_lock = lock_info(hdev);
 			FreeLibrary(hdllInst);
 			return status_lock;
+		}
+	}
+}
+
+int _stdcall XDT_GetHisInfo(HANDLE hdev, char* cardno, long* ye, char* xm, char* xb, char* csrq, char* sfzhm)
+{
+	HMODULE hdllInst = LoadLibrary(CONDLL);
+	if (hdllInst==NULL)
+	{
+		return -1801;
+	}
+	else
+	{
+		//城市通获取客户信息
+		CUSTOMERINFO info;
+		getcardinfo GetCardInfo;
+		GetCardInfo = (getcardinfo)GetProcAddress(hdllInst, "CapGetNBCardInfo");
+		if (GetCardInfo == NULL)
+		{
+			return -1701;
+		}
+		else
+		{
+			//CUSTOMERINFO *ctm_info;
+			long status_getinfo = GetCardInfo(&info);
+			cardno = info.CityCardNo;
+			*ye = info.Ye;
+			//xm = info.Name;
+		}
+		//健康卡上电
+		char _atr[64];
+		poweron jkk_poweron = (poweron)GetProcAddress(hdllInst, "PowerOn");
+		long s_pn1 = jkk_poweron(hdev, 1, _atr);
+		long s_pn3 = jkk_poweron(hdev, 3, _atr);
+		//健康卡读卡
+		r_ddf1ef06 ef06 = (r_ddf1ef06)GetProcAddress(hdllInst, "iR_DDF1EF06Info");
+		if (ef06 == NULL)
+		{
+			FreeLibrary(hdllInst);
+			return -1701;
+		}
+		else
+		{
+			char mz[12];
+			int stauts_ef06 = ef06(hdev, xm, xb, mz, csrq, sfzhm);
+			FreeLibrary(hdllInst);
+			return stauts_ef06;
 		}
 	}
 }
