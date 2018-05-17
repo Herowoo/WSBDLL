@@ -9,9 +9,9 @@
 
 //定义黑名单状态,初始值为0，验证后黑名单为-1，非黑名单为1
 int is_black = 0;
-LPCSTR CONDLL= "Cap_RW.dll";
+LPCSTR CONDLL = "Cap_RW.dll";
 /*
-	定义城市通接口函数
+定义城市通接口函数
 */
 //打开连接
 typedef long(WINAPI *opCom)();
@@ -45,9 +45,9 @@ typedef long(WINAPI *gettac)(long, LPSTR);
 typedef long(WINAPI *readrecords)(CONSUMEINFO*);
 
 //扣款,PSAM_ID使用LPSTR类型
-typedef long(WINAPI *setcardinfo_temp)(long, long, long, LPSTR, LPSTR, long*, char*,int);
+typedef long(WINAPI *setcardinfo_temp)(long, long, long, LPSTR, LPSTR, long*, char*, int);
 /*
-	定义居民健康卡接口函数
+定义居民健康卡接口函数
 */
 //6.1.2	打开设备
 typedef HANDLE(WINAPI *opendevice)(int);
@@ -143,24 +143,24 @@ typedef int(WINAPI *get_edindex)(HANDLE);
 typedef int(WINAPI *lockinfo)(HANDLE);
 
 //市立医院定制接口，用来解决读卡器卡死问题
-typedef int(WINAPI *getinfo_his)(HANDLE,char*,long*,char*,char*,char*,char*);
+typedef int(WINAPI *getinfo_his)(HANDLE, char*, long*, char*, char*, char*, char*);
 
 /*========================================实现城市通接口=======================================================*/
 
 /*
-	此方法用来获取卡片的黑名单状态
-	入口参数：
-		ip			socket服务器地址
-		port		socket服务器端口
-		uid			卡片uid
-	出口参数：
-		recv_buf	服务器返回字符
-	返回值：
-		-1			WSA启动失败
-		-2			socket failed
-		-3			socket连接失败
-		-4			向服务器发送数据失败
-		0			成功
+此方法用来获取卡片的黑名单状态
+入口参数：
+ip			socket服务器地址
+port		socket服务器端口
+uid			卡片uid
+出口参数：
+recv_buf	服务器返回字符
+返回值：
+-1			WSA启动失败
+-2			socket failed
+-3			socket连接失败
+-4			向服务器发送数据失败
+0			成功
 */
 long _stdcall GetBlackList(const char *ip, short port, long uid, char *recv_buf)
 {
@@ -355,7 +355,7 @@ LPSTR _stdcall GetIPAddrINI()
 	LPSTR LP_PATH = new char[MAX_PATH];
 	LPSTR ipaddr = new char[20];
 	strcpy(LP_PATH, "./ChgCity.ini");
-	GetPrivateProfileString("SERVER", "IPADDR", "NULL", ipaddr, 20, LP_PATH);
+	GetPrivateProfileStringA("SERVER", "IPADDR", "NULL", ipaddr, 20, LP_PATH);
 	delete[] LP_PATH;
 	return ipaddr;
 }
@@ -365,7 +365,7 @@ short  GetPortINI()
 	LPSTR LP_PATH = new char[MAX_PATH];
 	strcpy(LP_PATH, "./ChgCity.ini");
 	short port;
-	port = GetPrivateProfileInt("SERVER", "PORT", -1, LP_PATH);
+	port = GetPrivateProfileIntA("SERVER", "PORT", -1, LP_PATH);
 	delete[] LP_PATH;
 	return port;
 }
@@ -428,7 +428,7 @@ long VerifiBlackCard_UID(long u_id)
 //打开连接
 long _stdcall OpenCom()
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -452,7 +452,7 @@ long _stdcall OpenCom()
 //关闭连接
 void  CloseCom()
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	closeCom c_com = (closeCom)GetProcAddress(hdllInst, "CloseCom");
 	c_com();
 	FreeLibrary(hdllInst);
@@ -460,7 +460,7 @@ void  CloseCom()
 //读取用户信息
 long _stdcall  CapGetNBCardInfo(CUSTOMERINFO *info)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -484,7 +484,7 @@ long _stdcall  CapGetNBCardInfo(CUSTOMERINFO *info)
 //寻卡
 long _stdcall CapNBQueryCard(long *UID)
 {
-	HMODULE  hdllInst = LoadLibrary(CONDLL);
+	HMODULE  hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -576,7 +576,7 @@ long _stdcall CapSetNBCardInfo(long objNo, long UID, long opFare, LPSTR jyDT, __
 	{
 
 
-		HMODULE hdllInst = LoadLibrary(CONDLL);
+		HMODULE hdllInst = LoadLibraryA(CONDLL);
 		if (hdllInst == NULL)
 		{
 			return -1801;
@@ -606,7 +606,7 @@ long _stdcall CapSetNBCardInfo(long objNo, long UID, long opFare, LPSTR jyDT, __
 	}
 }
 //扣款,PSAM_ID使用LPSTR
-long _stdcall  CapSetNBCardInfo_temp(long objNo, long UID, long opFare, LPSTR jyDT, LPSTR psamID, long *psamJyNo, char *tac,int redix)
+long _stdcall  CapSetNBCardInfo_temp(long objNo, long UID, long opFare, LPSTR jyDT, LPSTR psamID, long *psamJyNo, char *tac, int redix)
 {
 	if (is_black != 1)
 	{
@@ -614,7 +614,7 @@ long _stdcall  CapSetNBCardInfo_temp(long objNo, long UID, long opFare, LPSTR jy
 	}
 	else
 	{
-		HMODULE hdllInst = LoadLibrary(CONDLL);
+		HMODULE hdllInst = LoadLibraryA(CONDLL);
 		if (hdllInst == NULL)
 		{
 			return -1801;
@@ -638,7 +638,7 @@ long _stdcall  CapSetNBCardInfo_temp(long objNo, long UID, long opFare, LPSTR jy
 				__int64 _psamID = atoll(temp);
 				long* _psamJyNo = psamJyNo;
 				char* _tac = tac;
-				long status_setinfo = Set_CardInfo(_objNo, _UID, _opFare, _jyDT, &_psamID, _psamJyNo, _tac,redix);
+				long status_setinfo = Set_CardInfo(_objNo, _UID, _opFare, _jyDT, &_psamID, _psamJyNo, _tac, redix);
 				char ch_temp[254];
 				psamID = _i64toa(_psamID, ch_temp, 10);
 				FreeLibrary(hdllInst);
@@ -658,7 +658,7 @@ long _stdcall CapSetNBCardInfo_LMT(long objNo, long UID, long opFare, LPSTR jyDT
 	{
 
 
-		HMODULE hdllInst = LoadLibrary(CONDLL);
+		HMODULE hdllInst = LoadLibraryA(CONDLL);
 		if (hdllInst == NULL)
 		{
 			return -1801;
@@ -690,7 +690,7 @@ long _stdcall CapSetNBCardInfo_Verify(long objNo, long UID, long opFare, LPSTR j
 	}
 	else
 	{
-		HMODULE hdllInst = LoadLibrary(CONDLL);
+		HMODULE hdllInst = LoadLibraryA(CONDLL);
 		if (hdllInst == NULL)
 		{
 			return -1801;
@@ -722,7 +722,7 @@ long _stdcall CapUpdateNBCardStatus(long opFare, LPSTR jyDT)
 	}
 	else
 	{
-		HMODULE hdllInst = LoadLibrary(CONDLL);
+		HMODULE hdllInst = LoadLibraryA(CONDLL);
 		if (hdllInst == NULL)
 		{
 			return -1801;
@@ -754,7 +754,7 @@ long _stdcall CapSetNBCardStatus(long onceLmt, long dayLmt)
 	}
 	else
 	{
-		HMODULE hdllInst = LoadLibrary(CONDLL);
+		HMODULE hdllInst = LoadLibraryA(CONDLL);
 		if (hdllInst == NULL)
 		{
 			return -1801;
@@ -779,7 +779,7 @@ long _stdcall CapSetNBCardStatus(long onceLmt, long dayLmt)
 //5.10.	设置密码
 long _stdcall CapSetCardPwd(LPSTR oldPwd, LPSTR newPwd)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -809,7 +809,7 @@ long _stdcall CapChargeInit(long objNo, long fare, __int64 *termId, long *bFare,
 	}
 	else
 	{
-		HMODULE hdllInst = LoadLibrary(CONDLL);
+		HMODULE hdllInst = LoadLibraryA(CONDLL);
 		if (hdllInst == NULL)
 		{
 			return -1801;
@@ -834,7 +834,7 @@ long _stdcall CapChargeInit(long objNo, long fare, __int64 *termId, long *bFare,
 //充值
 long _stdcall CapCharge(LPSTR dt, LPSTR mac2, LPSTR tac)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -864,7 +864,7 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 	}
 	else
 	{
-		HMODULE hdllInst = LoadLibrary(CONDLL);
+		HMODULE hdllInst = LoadLibraryA(CONDLL);
 		if (hdllInst == NULL)
 		{
 			return -1801;
@@ -887,9 +887,9 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 	}
 }
 //5.13.	获取tac值
-long _stdcall CapGetConsumeTac(long no, LPTSTR tac)
+long _stdcall CapGetConsumeTac(long no, LPSTR tac)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -914,7 +914,7 @@ long _stdcall CapGetConsumeTac(long no, LPTSTR tac)
 //获取十次交易记录
 long _stdcall CapReadRecords(CONSUMEINFO* info)
 {
-	HMODULE hinstance = LoadLibrary(CONDLL);
+	HMODULE hinstance = LoadLibraryA(CONDLL);
 	if (hinstance == NULL)
 	{
 		return -1801;
@@ -922,7 +922,7 @@ long _stdcall CapReadRecords(CONSUMEINFO* info)
 	else
 	{
 		readrecords records = (readrecords)GetProcAddress(hinstance, "CapReadRecords");
-		if (records==NULL)
+		if (records == NULL)
 		{
 			FreeLibrary(hinstance);
 			return -1701;
@@ -941,7 +941,7 @@ long _stdcall CapReadRecords(CONSUMEINFO* info)
 
 HANDLE _stdcall OpenDevice(int port)
 {
-	HMODULE hinstance = LoadLibrary(CONDLL);
+	HMODULE hinstance = LoadLibraryA(CONDLL);
 	if (hinstance == NULL)
 	{
 		return (HANDLE)-1;
@@ -965,7 +965,7 @@ HANDLE _stdcall OpenDevice(int port)
 }
 int _stdcall CloseDevice(HANDLE hdev)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -990,7 +990,7 @@ int _stdcall CloseDevice(HANDLE hdev)
 }
 int _stdcall PowerOn(HANDLE hdev, int slot, char* atr)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1015,7 +1015,7 @@ int _stdcall PowerOn(HANDLE hdev, int slot, char* atr)
 }
 int _stdcall SendAPDU(HANDLE hdev, unsigned char byslot, unsigned char* pbyccommand, unsigned long len, unsigned char* pbyrcommand, int* pnrs)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1044,7 +1044,7 @@ int _stdcall SendAPDU(HANDLE hdev, unsigned char byslot, unsigned char* pbyccomm
 }
 int _stdcall iR_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, char* fkjgdm, char* fkjgzs, char* fksj, char* kh, char* aqm, char* xpxlh, char* yycsdm)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1067,7 +1067,7 @@ int _stdcall iR_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, c
 }
 int _stdcall iW_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, char* fkjgdm, char* fkjgzs, char* fksj, char* kh, char* aqm, char* xpxlh, char* yycsdm)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1091,7 +1091,7 @@ int _stdcall iW_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, c
 }
 int _stdcall iR_DDF1EF06Info(HANDLE hdev, char* xm, char* xb, char* mz, char* csrq, char* sfzh)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1115,7 +1115,7 @@ int _stdcall iR_DDF1EF06Info(HANDLE hdev, char* xm, char* xb, char* mz, char* cs
 }
 int _stdcall iW_DDF1EF06Info(HANDLE hdev, char* xm, char* xb, char* mz, char* csrq, char* sfzh)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1139,7 +1139,7 @@ int _stdcall iW_DDF1EF06Info(HANDLE hdev, char* xm, char* xb, char* mz, char* cs
 }
 int _stdcall iR_DDF1EF07Info(HANDLE hdev, char* zp_path)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1155,7 +1155,7 @@ int _stdcall iR_DDF1EF07Info(HANDLE hdev, char* zp_path)
 		else
 		{
 
-			int stauts_ef07 = ef07(hdev,zp_path);
+			int stauts_ef07 = ef07(hdev, zp_path);
 			FreeLibrary(hdllInst);
 			return stauts_ef07;
 		}
@@ -1163,7 +1163,7 @@ int _stdcall iR_DDF1EF07Info(HANDLE hdev, char* zp_path)
 }
 int _stdcall iW_DDF1EF07Info(HANDLE hdev, char* zp_path)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1187,7 +1187,7 @@ int _stdcall iW_DDF1EF07Info(HANDLE hdev, char* zp_path)
 }
 int _stdcall iR_DDF1EF08Info(HANDLE hdev, char* kyxq, char* brdh1, char* brdh2, char* ylfs1, char* ylfs2, char* ylfs3)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1203,7 +1203,7 @@ int _stdcall iR_DDF1EF08Info(HANDLE hdev, char* kyxq, char* brdh1, char* brdh2, 
 		else
 		{
 
-			int stauts_ef08 = ef08(hdev,kyxq,brdh1,brdh2,ylfs1,ylfs2,ylfs3);
+			int stauts_ef08 = ef08(hdev, kyxq, brdh1, brdh2, ylfs1, ylfs2, ylfs3);
 			FreeLibrary(hdllInst);
 			return stauts_ef08;
 		}
@@ -1211,7 +1211,7 @@ int _stdcall iR_DDF1EF08Info(HANDLE hdev, char* kyxq, char* brdh1, char* brdh2, 
 }
 int _stdcall iW_DDF1EF08Info(HANDLE hdev, char* kyxq, char* brdh1, char* brdh2, char* ylfs1, char* ylfs2, char* ylfs3)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1235,7 +1235,7 @@ int _stdcall iW_DDF1EF08Info(HANDLE hdev, char* kyxq, char* brdh1, char* brdh2, 
 }
 int _stdcall iR_DF01EF05Info(HANDLE hdev, char* dzlb1, char* dz1, char* dzlb2, char* dz2)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1251,7 +1251,7 @@ int _stdcall iR_DF01EF05Info(HANDLE hdev, char* dzlb1, char* dz1, char* dzlb2, c
 		else
 		{
 
-			int stauts_df01ef05 = df01ef05(hdev,dzlb1,dz1,dzlb2,dz2);
+			int stauts_df01ef05 = df01ef05(hdev, dzlb1, dz1, dzlb2, dz2);
 			FreeLibrary(hdllInst);
 			return stauts_df01ef05;
 		}
@@ -1259,7 +1259,7 @@ int _stdcall iR_DF01EF05Info(HANDLE hdev, char* dzlb1, char* dz1, char* dzlb2, c
 }
 int _stdcall iW_DF01EF05Info(HANDLE hdev, char* dzlb1, char* dz1, char* dzlb2, char* dz2)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1282,7 +1282,7 @@ int _stdcall iW_DF01EF05Info(HANDLE hdev, char* dzlb1, char* dz1, char* dzlb2, c
 }
 int _stdcall iR_DF01EF06Info(HANDLE hdev, char* xm1, char* gx1, char* dh1, char* xm2, char* gx2, char* dh2, char* xm3, char* gx3, char* dh3)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1307,7 +1307,7 @@ int _stdcall iR_DF01EF06Info(HANDLE hdev, char* xm1, char* gx1, char* dh1, char*
 			char* _xm3 = xm3;
 			char* _gx3 = gx3;
 			char* _dh3 = dh3;
-			int stauts_df01ef06 = df01ef06(_hdev,_xm1,_gx1,_dh1,_xm2,_gx2,_dh2,_xm3,_gx3,_dh3);
+			int stauts_df01ef06 = df01ef06(_hdev, _xm1, _gx1, _dh1, _xm2, _gx2, _dh2, _xm3, _gx3, _dh3);
 			FreeLibrary(hdllInst);
 			return stauts_df01ef06;
 		}
@@ -1315,7 +1315,7 @@ int _stdcall iR_DF01EF06Info(HANDLE hdev, char* xm1, char* gx1, char* dh1, char*
 }
 int _stdcall iW_DF01EF06Info(HANDLE hdev, char* xm1, char* gx1, char* dh1, char* xm2, char* gx2, char* dh2, char* xm3, char* gx3, char* dh3)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1338,7 +1338,7 @@ int _stdcall iW_DF01EF06Info(HANDLE hdev, char* xm1, char* gx1, char* dh1, char*
 }
 int _stdcall iR_DF01EF07Info(HANDLE hdev, char* whcd, char* hyzk, char* zy)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1353,7 +1353,7 @@ int _stdcall iR_DF01EF07Info(HANDLE hdev, char* whcd, char* hyzk, char* zy)
 		}
 		else
 		{
-			int stauts_df01ef07 = df01ef07(hdev,whcd,hyzk,zy);
+			int stauts_df01ef07 = df01ef07(hdev, whcd, hyzk, zy);
 			FreeLibrary(hdllInst);
 			return stauts_df01ef07;
 		}
@@ -1361,7 +1361,7 @@ int _stdcall iR_DF01EF07Info(HANDLE hdev, char* whcd, char* hyzk, char* zy)
 }
 int _stdcall iW_DF01EF07Info(HANDLE hdev, char* whcd, char* hyzk, char* zy)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1382,9 +1382,9 @@ int _stdcall iW_DF01EF07Info(HANDLE hdev, char* whcd, char* hyzk, char* zy)
 		}
 	}
 }
-int _stdcall iR_DF01EF08Info(HANDLE hdev, char* zjlb, char* zjhm, char* jkdah,char* xnhzh)
+int _stdcall iR_DF01EF08Info(HANDLE hdev, char* zjlb, char* zjhm, char* jkdah, char* xnhzh)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1399,7 +1399,7 @@ int _stdcall iR_DF01EF08Info(HANDLE hdev, char* zjlb, char* zjhm, char* jkdah,ch
 		}
 		else
 		{
-			int stauts_df01ef08 = df01ef08(hdev, zjlb, zjhm, jkdah,xnhzh);
+			int stauts_df01ef08 = df01ef08(hdev, zjlb, zjhm, jkdah, xnhzh);
 			FreeLibrary(hdllInst);
 			return stauts_df01ef08;
 		}
@@ -1407,7 +1407,7 @@ int _stdcall iR_DF01EF08Info(HANDLE hdev, char* zjlb, char* zjhm, char* jkdah,ch
 }
 int _stdcall iW_DF01EF08Info(HANDLE hdev, char* zjlb, char* zjhm, char* jkdah, char* xnhzh)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1430,7 +1430,7 @@ int _stdcall iW_DF01EF08Info(HANDLE hdev, char* zjlb, char* zjhm, char* jkdah, c
 }
 int _stdcall iR_DF02EF05Info(HANDLE hdev, char* abo, char* rh, char* xc, char* xzb, char* xnxgb, char* dxb, char* nxwl, char* tnb, char* qgy, char* tx, char* qgyz, char* qgqs, char* kzxyz, char* xzqbq, char* qtyxjs)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1445,7 +1445,7 @@ int _stdcall iR_DF02EF05Info(HANDLE hdev, char* abo, char* rh, char* xc, char* x
 		}
 		else
 		{
-			int stauts_df02ef05 = df02ef05(hdev,abo,rh,xc,xzb,xnxgb,dxb,nxwl,tnb,qgy,tx,qgyz,qgqs,kzxyz,xzqbq,qtyxjs);
+			int stauts_df02ef05 = df02ef05(hdev, abo, rh, xc, xzb, xnxgb, dxb, nxwl, tnb, qgy, tx, qgyz, qgqs, kzxyz, xzqbq, qtyxjs);
 			FreeLibrary(hdllInst);
 			return stauts_df02ef05;
 		}
@@ -1453,7 +1453,7 @@ int _stdcall iR_DF02EF05Info(HANDLE hdev, char* abo, char* rh, char* xc, char* x
 }
 int _stdcall iW_DF02EF05Info(HANDLE hdev, char* abo, char* rh, char* xc, char* xzb, char* xnxgb, char* dxb, char* nxwl, char* tnb, char* qgy, char* tx, char* qgyz, char* qgqs, char* kzxyz, char* xzqbq, char* qtyxjs)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1476,7 +1476,7 @@ int _stdcall iW_DF02EF05Info(HANDLE hdev, char* abo, char* rh, char* xc, char* x
 }
 int _stdcall iR_DF02EF06Info(HANDLE hdev, char* jsb)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1491,7 +1491,7 @@ int _stdcall iR_DF02EF06Info(HANDLE hdev, char* jsb)
 		}
 		else
 		{
-			int stauts_df02ef06 = df02ef06(hdev,jsb);
+			int stauts_df02ef06 = df02ef06(hdev, jsb);
 			FreeLibrary(hdllInst);
 			return stauts_df02ef06;
 		}
@@ -1499,7 +1499,7 @@ int _stdcall iR_DF02EF06Info(HANDLE hdev, char* jsb)
 }
 int _stdcall iW_DF02EF06Info(HANDLE hdev, char* jsb)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1522,7 +1522,7 @@ int _stdcall iW_DF02EF06Info(HANDLE hdev, char* jsb)
 }
 int _stdcall iR_DF02EF07Info(HANDLE hdev, int recordNo, char* gmwz, char* gmmc)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1537,7 +1537,7 @@ int _stdcall iR_DF02EF07Info(HANDLE hdev, int recordNo, char* gmwz, char* gmmc)
 		}
 		else
 		{
-			int stauts_df02ef07 = df02ef07(hdev,recordNo,gmwz,gmmc);
+			int stauts_df02ef07 = df02ef07(hdev, recordNo, gmwz, gmmc);
 			FreeLibrary(hdllInst);
 			return stauts_df02ef07;
 		}
@@ -1545,7 +1545,7 @@ int _stdcall iR_DF02EF07Info(HANDLE hdev, int recordNo, char* gmwz, char* gmmc)
 }
 int _stdcall iW_DF02EF07Info(HANDLE hdev, char* gmwz, char* gmmc)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1568,7 +1568,7 @@ int _stdcall iW_DF02EF07Info(HANDLE hdev, char* gmwz, char* gmmc)
 }
 int _stdcall iR_DF02EF08Info(HANDLE hdev, int recordNo, char* jzmc, char* jzsj)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1591,7 +1591,7 @@ int _stdcall iR_DF02EF08Info(HANDLE hdev, int recordNo, char* jzmc, char* jzsj)
 }
 int _stdcall iW_DF02EF08Info(HANDLE hdev, char* jzmc, char* jzsj)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1614,7 +1614,7 @@ int _stdcall iW_DF02EF08Info(HANDLE hdev, char* jzmc, char* jzsj)
 }
 int _stdcall iR_DF03EF05Info(HANDLE hdev, char* jl1, char* jl2, char* jl3)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1629,7 +1629,7 @@ int _stdcall iR_DF03EF05Info(HANDLE hdev, char* jl1, char* jl2, char* jl3)
 		}
 		else
 		{
-			int stauts_df03ef05 = df03ef05(hdev, jl1, jl2,jl3);
+			int stauts_df03ef05 = df03ef05(hdev, jl1, jl2, jl3);
 			FreeLibrary(hdllInst);
 			return stauts_df03ef05;
 		}
@@ -1637,7 +1637,7 @@ int _stdcall iR_DF03EF05Info(HANDLE hdev, char* jl1, char* jl2, char* jl3)
 }
 int _stdcall iW_DF03EF05Info(HANDLE hdev, int recordNo)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1660,7 +1660,7 @@ int _stdcall iW_DF03EF05Info(HANDLE hdev, int recordNo)
 }
 int _stdcall iErase_DF03EF05Info(HANDLE hdev, int recordNo)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1683,7 +1683,7 @@ int _stdcall iErase_DF03EF05Info(HANDLE hdev, int recordNo)
 }
 int _stdcall iR_DF03EF06Info(HANDLE hdev, char* mzbs1, char* mzbs2, char* mzbs3, char* mzbs4, char* mzbs5)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1698,7 +1698,7 @@ int _stdcall iR_DF03EF06Info(HANDLE hdev, char* mzbs1, char* mzbs2, char* mzbs3,
 		}
 		else
 		{
-			int stauts_df03ef06 = df03ef06(hdev, mzbs1,mzbs2,mzbs3,mzbs4,mzbs5);
+			int stauts_df03ef06 = df03ef06(hdev, mzbs1, mzbs2, mzbs3, mzbs4, mzbs5);
 			FreeLibrary(hdllInst);
 			return stauts_df03ef06;
 		}
@@ -1706,7 +1706,7 @@ int _stdcall iR_DF03EF06Info(HANDLE hdev, char* mzbs1, char* mzbs2, char* mzbs3,
 }
 int _stdcall iW_DF03EF06Info(HANDLE hdev, int record)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1721,7 +1721,7 @@ int _stdcall iW_DF03EF06Info(HANDLE hdev, int record)
 		}
 		else
 		{
-			int stauts_df03ef06 = df03ef06(hdev,record);
+			int stauts_df03ef06 = df03ef06(hdev, record);
 			FreeLibrary(hdllInst);
 			return stauts_df03ef06;
 		}
@@ -1729,7 +1729,7 @@ int _stdcall iW_DF03EF06Info(HANDLE hdev, int record)
 }
 int _stdcall iErase_DF03EF06Info(HANDLE hdev, int record)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1752,7 +1752,7 @@ int _stdcall iErase_DF03EF06Info(HANDLE hdev, int record)
 }
 int _stdcall iR_DF03EEInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, int nstyle)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1767,7 +1767,7 @@ int _stdcall iR_DF03EEInfo(HANDLE hdev, int record, char* szdata, int npos, int 
 		}
 		else
 		{
-			int stauts_df03ee = df03ee(hdev, record,szdata,npos,nlen,nstyle);
+			int stauts_df03ee = df03ee(hdev, record, szdata, npos, nlen, nstyle);
 			FreeLibrary(hdllInst);
 			return stauts_df03ee;
 		}
@@ -1775,7 +1775,7 @@ int _stdcall iR_DF03EEInfo(HANDLE hdev, int record, char* szdata, int npos, int 
 }
 int _stdcall iW_DF03EEInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, int nstyle)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1798,7 +1798,7 @@ int _stdcall iW_DF03EEInfo(HANDLE hdev, int record, char* szdata, int npos, int 
 }
 int _stdcall iR_DF03EDInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, int nstyle)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1821,7 +1821,7 @@ int _stdcall iR_DF03EDInfo(HANDLE hdev, int record, char* szdata, int npos, int 
 }
 int _stdcall iW_DF03EDInfo(HANDLE hdev, int record, char* szdata, int npos, int nlen, int nstyle)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1844,7 +1844,7 @@ int _stdcall iW_DF03EDInfo(HANDLE hdev, int record, char* szdata, int npos, int 
 }
 int _stdcall SM3Digest(HANDLE hdev, BYTE* pbdata, int len, BYTE* pbhash, BYTE* pbhashlen)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1859,15 +1859,15 @@ int _stdcall SM3Digest(HANDLE hdev, BYTE* pbdata, int len, BYTE* pbhash, BYTE* p
 		}
 		else
 		{
-			int stauts_sm3 = _sm3(hdev, pbdata,len,pbhash,pbhashlen);
+			int stauts_sm3 = _sm3(hdev, pbdata, len, pbhash, pbhashlen);
 			FreeLibrary(hdllInst);
 			return stauts_sm3;
 		}
 	}
 }
-int _stdcall VerifyPin(HANDLE hdev, char* szpin,BYTE* pwdretry)
+int _stdcall VerifyPin(HANDLE hdev, char* szpin, BYTE* pwdretry)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1882,7 +1882,7 @@ int _stdcall VerifyPin(HANDLE hdev, char* szpin,BYTE* pwdretry)
 		}
 		else
 		{
-			int stauts_pin = pin(hdev,szpin,pwdretry);
+			int stauts_pin = pin(hdev, szpin, pwdretry);
 			FreeLibrary(hdllInst);
 			return stauts_pin;
 		}
@@ -1890,7 +1890,7 @@ int _stdcall VerifyPin(HANDLE hdev, char* szpin,BYTE* pwdretry)
 }
 int _stdcall SM2SignHash(HANDLE hdev, BYTE* pbdata, int len, BYTE* pbhash, BYTE* pbhashlen)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1913,15 +1913,15 @@ int _stdcall SM2SignHash(HANDLE hdev, BYTE* pbdata, int len, BYTE* pbhash, BYTE*
 }
 int _stdcall IReader_GetDeviceCSN(HANDLE hdev, char* info)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
-	if (hdllInst==NULL)
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
+	if (hdllInst == NULL)
 	{
 		return -1801;
 	}
 	else
 	{
 		getcsn get_csn = (getcsn)GetProcAddress(hdllInst, "IReader_GetDeviceCSN");
-		if (get_csn==NULL)
+		if (get_csn == NULL)
 		{
 			FreeLibrary(hdllInst);
 			return -1701;
@@ -1936,14 +1936,14 @@ int _stdcall IReader_GetDeviceCSN(HANDLE hdev, char* info)
 }
 int _stdcall iReader_SAM_Public(HANDLE hdev, char* info)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
 	}
 	else
 	{
-		 getsam get_sam = (getsam)GetProcAddress(hdllInst, "iReader_SAM_Public");
+		getsam get_sam = (getsam)GetProcAddress(hdllInst, "iReader_SAM_Public");
 		if (get_sam == NULL)
 		{
 			FreeLibrary(hdllInst);
@@ -1959,7 +1959,7 @@ int _stdcall iReader_SAM_Public(HANDLE hdev, char* info)
 }
 int _stdcall iReader_GetLastEEIndex(HANDLE hdev)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -1982,7 +1982,7 @@ int _stdcall iReader_GetLastEEIndex(HANDLE hdev)
 }
 int _stdcall iReader_GetLastEDIndex(HANDLE hdev)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -2005,7 +2005,7 @@ int _stdcall iReader_GetLastEDIndex(HANDLE hdev)
 }
 int _stdcall LockPersonalInfo(HANDLE hdev)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
 		return -1801;
@@ -2029,8 +2029,8 @@ int _stdcall LockPersonalInfo(HANDLE hdev)
 
 int _stdcall XDT_GetHisInfo(HANDLE hdev, char* cardno, long* ye, char* xm, char* xb, char* csrq, char* sfzhm)
 {
-	HMODULE hdllInst = LoadLibrary(CONDLL);
-	if (hdllInst==NULL)
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
+	if (hdllInst == NULL)
 	{
 		return -1801;
 	}
