@@ -1,0 +1,52 @@
+﻿  stdafx.cpp
+  WSBDLL.cpp
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(217): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(1850): note: 参见“inet_addr”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(229): warning C4996: 'itoa': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _itoa. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdlib.h(1316): note: 参见“itoa”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(269): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(1850): note: 参见“inet_addr”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(316): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(380): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(1850): note: 参见“inet_addr”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(427): warning C4996: 'itoa': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _itoa. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdlib.h(1316): note: 参见“itoa”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(465): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(1850): note: 参见“inet_addr”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(477): warning C4996: 'itoa': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _itoa. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdlib.h(1316): note: 参见“itoa”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(498): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(508): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(517): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(527): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(537): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(806): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(843): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(849): warning C4996: '_i64toa': This function or variable may be unsafe. Consider using _i64toa_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdlib.h(696): note: 参见“_i64toa”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1090): warning C4477: “sprintf”: 格式字符串“%s”需要类型“char *”的参数，但可变参数 8 拥有了类型“int”
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1090): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1415): warning C4553: “==”: 运算符不起任何作用；是否是有意使用“=”的?
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1455): warning C4996: 'strncpy': This function or variable may be unsafe. Consider using strncpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(346): note: 参见“strncpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1461): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+  chuankou.cpp
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\chuankou.cpp(28): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+  正在生成代码...
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1519): warning C4715: “iR_DDF1EF06Info”: 不是所有的控件路径都返回值
+  dllmain.cpp
+    正在创建库 C:\Users\Administrator\Documents\Visual Studio 2015\Projects\WSBDLL\Debug\WSBDLL.lib 和对象 C:\Users\Administrator\Documents\Visual Studio 2015\Projects\WSBDLL\Debug\WSBDLL.exp
+WSBDLL.exp : warning LNK4070: .EXP 中的 /OUT:WSB_RWInterface.dll 指令与输出文件名“C:\Users\Administrator\Documents\Visual Studio 2015\Projects\WSBDLL\Debug\WSBDLL.dll”不同；忽略指令
+  WSBDLL.vcxproj -> C:\Users\Administrator\Documents\Visual Studio 2015\Projects\WSBDLL\Debug\WSBDLL.dll
+  WSBDLL.vcxproj -> C:\Users\Administrator\Documents\Visual Studio 2015\Projects\WSBDLL\Debug\WSBDLL.pdb (Full PDB)

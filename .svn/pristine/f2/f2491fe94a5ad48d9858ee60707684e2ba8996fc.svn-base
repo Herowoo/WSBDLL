@@ -1,0 +1,7 @@
+0000000000000000000000000000000000000000 e2f098da19fe19be1637c16b13fee7e84cf7bfa7 Administrator <Administrator@WDL-PC> 1506392256 +0800	commit (initial): 添加 .gitignore 和 .gitattributes。
+e2f098da19fe19be1637c16b13fee7e84cf7bfa7 e9b3c221610768045c3453f813ccd6bbcbeac5c0 unknown <unknown> 1506392257 +0800	commit: 添加项目文件。
+e9b3c221610768045c3453f813ccd6bbcbeac5c0 1aee234524d94b87a24eb85d74b778f6fddd70dd Administrator <Administrator@WDL-PC> 1513129369 +0800	commit: 修改了在其他机器上无法加载当前DLL的问题
+1aee234524d94b87a24eb85d74b778f6fddd70dd 19c13db456d5e52b88c44a436038c30969f51be2 Administrator <Administrator@WDL-PC> 1520499428 +0800	commit: DLL函数名异常
+19c13db456d5e52b88c44a436038c30969f51be2 1921693592667588ee6666a5e07edaa19f97fa59 Administrator <Administrator@WDL-PC> 1526543389 +0800	commit: 新增扫码功能，不完善
+1921693592667588ee6666a5e07edaa19f97fa59 be0528db3fe40fb42b66e290de58cf72d5151e27 Administrator <Administrator@WDL-PC> 1526543434 +0800	checkout: moving from master to newBranch
+be0528db3fe40fb42b66e290de58cf72d5151e27 1921693592667588ee6666a5e07edaa19f97fa59 Administrator <Administrator@WDL-PC> 1526543476 +0800	checkout: moving from newBranch to master

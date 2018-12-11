@@ -1,0 +1,40 @@
+﻿  stdafx.cpp
+  dllmain.cpp
+  WSBDLL.cpp
+WSBDLL.cpp(182): warning C4996: 'localtime': This function or variable may be unsafe. Consider using localtime_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\time.h(505): note: 参见“localtime”的声明
+WSBDLL.cpp(183): warning C4996: 'localtime': This function or variable may be unsafe. Consider using localtime_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\time.h(505): note: 参见“localtime”的声明
+WSBDLL.cpp(212): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  C:\Program Files (x86)\Windows Kits\8.1\Include\um\WinSock2.h(1850): note: 参见“inet_addr”的声明
+WSBDLL.cpp(224): warning C4996: 'itoa': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _itoa. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\stdlib.h(1316): note: 参见“itoa”的声明
+WSBDLL.cpp(265): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  C:\Program Files (x86)\Windows Kits\8.1\Include\um\WinSock2.h(1850): note: 参见“inet_addr”的声明
+WSBDLL.cpp(312): warning C4996: 'itoa': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _itoa. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\stdlib.h(1316): note: 参见“itoa”的声明
+WSBDLL.cpp(350): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  C:\Program Files (x86)\Windows Kits\8.1\Include\um\WinSock2.h(1850): note: 参见“inet_addr”的声明
+WSBDLL.cpp(362): warning C4996: 'itoa': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _itoa. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\stdlib.h(1316): note: 参见“itoa”的声明
+WSBDLL.cpp(383): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+WSBDLL.cpp(392): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+WSBDLL.cpp(634): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+WSBDLL.cpp(671): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+WSBDLL.cpp(677): warning C4996: '_i64toa': This function or variable may be unsafe. Consider using _i64toa_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\stdlib.h(696): note: 参见“_i64toa”的声明
+WSBDLL.cpp(779): warning C4477: “sprintf”: 格式字符串“%ld”需要类型“long”的参数，但可变参数 7 拥有了类型“long *”
+WSBDLL.cpp(779): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  C:\Program Files (x86)\Windows Kits\10\Include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+    正在创建库 C:\Users\Administrator\Documents\Visual Studio 2015\Projects\WSBDLL\Release\WSBDLL.lib 和对象 C:\Users\Administrator\Documents\Visual Studio 2015\Projects\WSBDLL\Release\WSBDLL.exp
+WSBDLL.exp : warning LNK4070: .EXP 中的 /OUT:WSB_RWInterface.dll 指令与输出文件名“C:\Users\Administrator\Documents\Visual Studio 2015\Projects\WSBDLL\Release\WSBDLL.dll”不同；忽略指令
+  正在生成代码
+  All 419 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  已完成代码的生成
+WSBDLL.exp : warning LNK4070: .EXP 中的 /OUT:WSB_RWInterface.dll 指令与输出文件名“C:\Users\Administrator\Documents\Visual Studio 2015\Projects\WSBDLL\Release\WSBDLL.dll”不同；忽略指令
+  WSBDLL.vcxproj -> C:\Users\Administrator\Documents\Visual Studio 2015\Projects\WSBDLL\Release\WSBDLL.dll
+  WSBDLL.vcxproj -> C:\Users\Administrator\Documents\Visual Studio 2015\Projects\WSBDLL\Release\WSBDLL.pdb (Full PDB)

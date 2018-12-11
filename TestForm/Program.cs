@@ -14,7 +14,7 @@ namespace TestForm
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new FormCheckCard());
+            Application.Run(new Form1());
             //Application.Run(new HID());
         }
     }

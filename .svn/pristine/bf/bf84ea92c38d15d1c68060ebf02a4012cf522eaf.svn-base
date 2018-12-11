@@ -1,0 +1,158 @@
+﻿  stdafx.cpp
+  dllmain.cpp
+  WSBDLL.cpp
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(433): warning C4996: 'gethostbyname': Use getaddrinfo() or GetAddrInfoW() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(2238): note: 参见“gethostbyname”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(439): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(462): warning C4996: 'localtime': This function or variable may be unsafe. Consider using localtime_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\time.h(505): note: 参见“localtime”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(463): warning C4996: 'localtime': This function or variable may be unsafe. Consider using localtime_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\time.h(505): note: 参见“localtime”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(468): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(482): warning C4996: 'localtime': This function or variable may be unsafe. Consider using localtime_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\time.h(505): note: 参见“localtime”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(483): warning C4996: 'localtime': This function or variable may be unsafe. Consider using localtime_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\time.h(505): note: 参见“localtime”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(488): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(541): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(1850): note: 参见“inet_addr”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(553): warning C4996: 'itoa': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _itoa. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdlib.h(1316): note: 参见“itoa”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(594): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(1850): note: 参见“inet_addr”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(641): warning C4996: 'itoa': The POSIX name for this item is deprecated. Instead, use the ISO C and C++ conformant name: _itoa. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdlib.h(1316): note: 参见“itoa”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(679): warning C4996: 'inet_addr': Use inet_pton() or InetPton() instead or define _WINSOCK_DEPRECATED_NO_WARNINGS to disable deprecated API warnings
+  c:\program files (x86)\windows kits\8.1\include\um\winsock2.h(1850): note: 参见“inet_addr”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(711): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(720): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(789): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(803): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(821): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(823): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(896): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(968): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1017): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1255): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1293): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1299): warning C4996: '_i64toa': This function or variable may be unsafe. Consider using _i64toa_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdlib.h(696): note: 参见“_i64toa”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1402): warning C4477: “sprintf”: 格式字符串“%ld”需要类型“long”的参数，但可变参数 7 拥有了类型“long *”
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1402): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1427): warning C4996: 'Json::FastWriter': Use StreamWriterBuilder instead
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\json\writer.h(168): note: 参见“Json::FastWriter”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1474): warning C4996: 'Json::FastWriter::write': Use StreamWriterBuilder instead
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\json\writer.h(185): note: 参见“Json::FastWriter::write”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1484): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1493): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1692): warning C4996: 'Json::FastWriter': Use StreamWriterBuilder instead
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\json\writer.h(168): note: 参见“Json::FastWriter”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1739): warning C4996: 'Json::FastWriter::write': Use StreamWriterBuilder instead
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\json\writer.h(185): note: 参见“Json::FastWriter::write”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1749): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1758): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1841): warning C4996: 'Json::FastWriter': Use StreamWriterBuilder instead
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\json\writer.h(168): note: 参见“Json::FastWriter”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1846): warning C4996: '_i64toa': This function or variable may be unsafe. Consider using _i64toa_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdlib.h(696): note: 参见“_i64toa”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1850): warning C4996: '_i64toa': This function or variable may be unsafe. Consider using _i64toa_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdlib.h(696): note: 参见“_i64toa”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1892): warning C4996: 'Json::FastWriter::write': Use StreamWriterBuilder instead
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\json\writer.h(185): note: 参见“Json::FastWriter::write”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1902): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(1911): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3093): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3095): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3102): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3103): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3138): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3146): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3157): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3158): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3066): warning C4101: “_info”: 未引用的局部变量
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3191): warning C4996: 'Json::FastWriter': Use StreamWriterBuilder instead
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\json\writer.h(168): note: 参见“Json::FastWriter”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3241): warning C4996: 'Json::FastWriter::write': Use StreamWriterBuilder instead
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\json\writer.h(185): note: 参见“Json::FastWriter::write”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3251): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3260): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3274): warning C4996: 'Json::FastWriter': Use StreamWriterBuilder instead
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\json\writer.h(168): note: 参见“Json::FastWriter”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3317): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3364): warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\stdio.h(1769): note: 参见“sprintf”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3378): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3389): warning C4996: 'strcpy': This function or variable may be unsafe. Consider using strcpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  c:\program files (x86)\windows kits\10\include\10.0.10240.0\ucrt\string.h(119): note: 参见“strcpy”的声明
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(3272): warning C4101: “_info”: 未引用的局部变量
+  json_writer.cpp
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(25): warning C4005: “isfinite”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(21): note: 参见“isfinite”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(36): warning C4005: “isfinite”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(25): note: 参见“isfinite”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(39): warning C4005: “isfinite”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(36): note: 参见“isfinite”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(45): warning C4005: “isfinite”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(39): note: 参见“isfinite”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(53): warning C4005: “snprintf”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(51): note: 参见“snprintf”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(55): warning C4005: “snprintf”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(53): note: 参见“snprintf”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(58): warning C4005: “snprintf”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(55): note: 参见“snprintf”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(61): warning C4005: “snprintf”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(58): note: 参见“snprintf”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(67): warning C4005: “isfinite”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(45): note: 参见“isfinite”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(68): warning C4005: “snprintf”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(61): note: 参见“snprintf”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_writer.cpp(1261): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  json_value.cpp
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_value.cpp(32): warning C4005: “ALIGNAS”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_value.cpp(30): note: 参见“ALIGNAS”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_value.cpp(1681): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  json_reader.cpp
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_reader.cpp(27): warning C4005: “snprintf”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_reader.cpp(25): note: 参见“snprintf”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_reader.cpp(29): warning C4005: “snprintf”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_reader.cpp(27): note: 参见“snprintf”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_reader.cpp(32): warning C4005: “snprintf”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_reader.cpp(29): note: 参见“snprintf”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_reader.cpp(35): warning C4005: “snprintf”: 宏重定义
+  c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_reader.cpp(32): note: 参见“snprintf”的前一个定义
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\lib_json\json_reader.cpp(2062): fatal error C1010: 在查找预编译头时遇到意外的文件结尾。是否忘记了向源中添加“#include "stdafx.h"”?
+  正在生成代码...
+c:\users\administrator\documents\visual studio 2015\projects\wsbdll\wsbdll\wsbdll.cpp(961): warning C4715: “UploadDetailByPost”: 不是所有的控件路径都返回值

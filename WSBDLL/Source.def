@@ -1,4 +1,4 @@
-LIBRARY WSB_RWInterface
+LIBRARY WSBDLL
 EXPORTS 
 CapSetNBCardInfo_temp @1
 CapGetNBCardInfo @2
@@ -61,6 +61,11 @@ IReader_GetDeviceCSN @58
 iReader_SAM_Public @59
 iReader_GetLastEEIndex @60
 iReader_GetLastEDIndex @61
-LockPersonalInfo @62
-XDT_GetHisInfo @63
-CapSetNBCardInfo_Str1 @64
+CapSetNBCardInfo_Str1 @62
+XDT_BaseInfo @63
+XDT_SetCardInfo @64
+GetHash @65
+XDT_BaseInfo_Json @66
+GetComInputInfo @67
+test1 @68
+GetComInputInfo_Temp @69
