@@ -12,7 +12,7 @@
 #include <fstream>
 #include <iomanip>
 #include <thread>
-#include"json\json.h"
+#include "json\json.h"
 #include "scan\chuankou.h"
 #pragma comment(lib,"ws2_32.lib")
 #include <comdef.h>
@@ -20,6 +20,7 @@
 using namespace std;
 //定义黑名单状态,初始值为0，验证后黑名单为-1，非黑名单为1
 int is_black = 0;
+const int T = 200;
 LPCSTR CONDLL = "Cap_RW.dll";
 LPCSTR iniFileName = "./ChgCity.ini";
 LPSTR RIZHI = "debug.log";
@@ -517,12 +518,6 @@ void WriteInFile(char* filename, std::string str_to_write)
 	fout << str_to_write.c_str();
 	fout.close();
 }
-void WriteTempLog(char* filename, std::string str_to_write)
-{
-	std::ofstream fout(filename, std::ios::trunc);
-	fout << str_to_write.c_str() << endl;
-	fout.close();
-}
 /*
 此方法用来获取卡片的黑名单状态
 入口参数：
@@ -540,6 +535,10 @@ recv_buf	服务器返回字符
 */
 long _stdcall GetBlackList(const char *ip, short port, long uid, char *recv_buf)
 {
+	W_ReadCardLog("EVENT 调用函数GetBlackList开始");
+	char _log[64] = { 0 };
+	sprintf(_log, "PARA UID:%ld", uid);
+	W_ReadCardLog(_log);
 	const int BUF_SIZE = 64;
 	WSADATA         wsd;            //WSADATA变量  
 	SOCKET          sHost;          //服务器套接字  
@@ -548,11 +547,13 @@ long _stdcall GetBlackList(const char *ip, short port, long uid, char *recv_buf)
 	int             retVal;         //返回值  
 	if (WSAStartup(MAKEWORD(2, 2), &wsd) != 0)
 	{
+		W_ReadCardLog("ERROR -1 WSA启动失败");
 		return -1;		//WSA启动失败
 	}
 	sHost = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (INVALID_SOCKET == sHost)
 	{
+		W_ReadCardLog("ERROR -2 socket failed");
 		WSACleanup();
 		return -2;		//socket failed
 	}
@@ -565,6 +566,7 @@ long _stdcall GetBlackList(const char *ip, short port, long uid, char *recv_buf)
 	retVal = connect(sHost, (LPSOCKADDR)&servAddr, sizeof(servAddr));
 	if (SOCKET_ERROR == retVal)
 	{
+		W_ReadCardLog("ERROR -3 连接失败");
 		closesocket(sHost);
 		WSACleanup();
 		return -3;		//连接失败
@@ -576,6 +578,7 @@ long _stdcall GetBlackList(const char *ip, short port, long uid, char *recv_buf)
 	retVal = send(sHost, buf, strlen(buf), 0);
 	if (SOCKET_ERROR == retVal)
 	{
+		W_ReadCardLog("ERROR -4 发送失败");
 		closesocket(sHost);
 		WSACleanup();
 		return -4;		//发送失败
@@ -584,6 +587,7 @@ long _stdcall GetBlackList(const char *ip, short port, long uid, char *recv_buf)
 	recv(sHost, recvbuf, 1, 0);
 	closesocket(sHost); //关闭套接字  
 	WSACleanup();       //释放套接字资源  
+	W_ReadCardLog("INFO socket验证完成");
 	return  0;
 }
 
@@ -754,58 +758,80 @@ short  GetPortINI()
 //通过UID验证黑名单
 long VerifiBlackCard_UID(long u_id)
 {
+	
 	const char* ipaddr = GetIPAddrINI();
 	short port = GetPortINI();
 	char recv_buf = '9';
 	long status = GetBlackList(ipaddr, port, u_id, &recv_buf);
+	W_ReadCardLog("EVENT 调用函数GetBlackList结束");
 	if (status == 0)
 	{
-		//socket返回值为1，表示此卡UID在黑名单库中
 		if (recv_buf == '1')
 		{
-			is_black = -1;
-			return 463;
+			return -777;
 		}
-		//socket返回值为2，表示接口服务异常，需重新请求
-		if (recv_buf == '2')
+		else if (recv_buf == '0')
 		{
-			int i = 0;
-			int max_count = 10;
-			while ((recv_buf == '2') && (i < max_count))
-			{
-				GetBlackList(ipaddr, port, u_id, &recv_buf);
-				i++;
-			}
-			switch (recv_buf)
-			{
-			case '2':
-				is_black = 0;
-				return 404;
-				break;
-			case '1':
-				is_black = -1;
-				return 463;
-				break;
-			case '0':
-				is_black = 1;
-				return 0;
-				break;
-			default:
-				return 51;
-				break;
-			}
+			return 0;
 		}
 		else
 		{
-			is_black = 1;
-			return 0;
+			return -700;
 		}
 	}
-
 	else
 	{
-		return 404;					//黑名单验证接口连接异常
+		return -600;
 	}
+	//取消验证黑名单失败时的多次验证尝试
+	//if (status == 0)
+	//{
+	//	//socket返回值为1，表示此卡UID在黑名单库中
+	//	if (recv_buf == '1')
+	//	{
+	//		is_black = -1;
+	//		return 463;
+	//	}
+	//	//socket返回值为2，表示接口服务异常，需重新请求
+	//	if (recv_buf == '2')
+	//	{
+	//		int i = 0;
+	//		int max_count = 2;
+	//		while ((recv_buf == '2') && (i < max_count))
+	//		{
+	//			GetBlackList(ipaddr, port, u_id, &recv_buf);
+	//			i++;
+	//		}
+	//		switch (recv_buf)
+	//		{
+	//		case '2':
+	//			is_black = 0;
+	//			return 404;
+	//			break;
+	//		case '1':
+	//			is_black = -1;
+	//			return 463;
+	//			break;
+	//		case '0':
+	//			is_black = 1;
+	//			return 0;
+	//			break;
+	//		default:
+	//			return 51;
+	//			break;
+	//		}
+	//	}
+	//	else
+	//	{
+	//		is_black = 1;
+	//		return 0;
+	//	}
+	//}
+
+	//else
+	//{
+	//	return 404;					//黑名单验证接口连接异常
+	//}
 }
 
 //通过配置文件获取字段的值
@@ -842,7 +868,6 @@ long UploadDetailByPost(char* http_req, char* host, char* url)
 	char *hxKey = GetValueInIni("TransDetail", "key", iniFileName);
 	//计算hash值
 	char md5jiegou[16];
-	//char *md5jiegou = new char[16];
 	char *random = "1";
 	SYSTEMTIME _st = { 0 };
 	GetLocalTime(&_st);
@@ -852,18 +877,13 @@ long UploadDetailByPost(char* http_req, char* host, char* url)
 	sprintf(shuru, "%d%s%s%s", _appid, ts, random, hxKey);
 	MD5Digest(shuru, strlen(shuru), md5jiegou);
 	std::string hash = base64_encode(md5jiegou, 16);
-
+	//hash计算结束
 	Json::Value req;
 	req["posCode"] = GetValueInIni("TransDetail", "posCode", iniFileName);//"090001000004";
 	req["merchantNo"] = GetValueInIni("TransDetail", "MerchantNo", iniFileName);//"09000001";
 	req["TestFlag"] = GetValueInIni("TransDetail", "TestFlag", iniFileName);//测试记录，正式记录需改成1
-
-																			/*GetLocalTime(&_st);
-																			char c_ts[15];
-																			sprintf(c_ts, "%d%02d%02d%02d%02d%02d", _st.wYear, _st.wMonth, _st.wDay, _st.wHour, _st.wMinute, _st.wSecond);*/
 	req["Collectdt"] = ts;
 	//下列参数是固定值
-
 	req["TradeCityCode"] = "0374";
 	req["OwneityCode"] = "4610";
 	req["AssCardType"] = 1;
@@ -928,7 +948,6 @@ long UploadDetailByPost(char* http_req, char* host, char* url)
 		"Accept-Encoding:gzip, deflate\r\n"
 		"Accept-Language:zh-CN,en,*\r\n"
 		"Content-Length:%d\r\n"
-		//"Content-Type:application/x-www-form-urlencoded; charset=UTF-8\r\n"
 		"ver: 2.0\r\n"
 		"appid: %d\r\n"
 		"apptypeid: %d\r\n"
@@ -946,57 +965,66 @@ long UploadDetailByPost(char* http_req, char* host, char* url)
 	//2018-09-07 12:19	此处修改为在提交post之前将信息写入提交日志，服务器返回日志在收到后继续写入
 	W_UploadLog(buf_Send);
 	short _port = GetPrivateProfileIntA("TransDetail", "PORT", 80, iniFileName);
-	
+
 	//提交POST
 	long ret_sendpost = SendPostRequest(req_ip, _port, buf_Send, req_resv);
-	W_ReadCardLog("EVENT 调用函数SendPostRequest结束,POST请求提交完毕");
-	//sendGetRequest(buf_Send);
-	//处理乱码
-	int _wcsLen = ::MultiByteToWideChar(CP_UTF8, NULL, req_resv, strlen(req_resv), NULL, 0);
-	//分配空间要给'\0'留个空间，MultiByteToWideChar不会给'\0'空间
-	wchar_t* _wszString = new wchar_t[_wcsLen + 1];
-	//转换
-	::MultiByteToWideChar(CP_UTF8, NULL, req_resv, strlen(req_resv), _wszString, _wcsLen);
-	//最后加上'\0'
-	_wszString[_wcsLen] = '\0';
-	_bstr_t _b(_wszString);
-	char *_rev_temp = _b;
-	//截取json
-	string str_rev(_rev_temp);
-	string json_rel;
-	int json_bg = str_rev.find_first_of("{", 0);
-	int json_end = str_rev.find_last_of("}");
-	if (json_end > json_bg)
+	char sendlog[64] = { 0 };
+	sprintf(sendlog, "EVENT 调用函数SendPostRequest结束,POST请求提交完毕,返回%ld", ret_sendpost);
+	W_ReadCardLog(sendlog);
+	if (0 == ret_sendpost)
 	{
-		json_rel = str_rev.substr(json_bg, json_end - json_bg + 1);
-		//写入上传日志
-		/*string str_send(buf_Send);
-		string str_log = str_send + json_rel;
-		W_UploadLog(str_log.c_str());*/
-		//同上，注释掉上面代码，此处修改为服务器返回信息单独写入
-		W_UploadLog(json_rel.c_str());
-		//解析json
-		Json::Value js_vl;
-		Json::Reader reader;
-		if (reader.parse(json_rel, js_vl))
+		//处理乱码
+		int _wcsLen = ::MultiByteToWideChar(CP_UTF8, NULL, req_resv, strlen(req_resv), NULL, 0);
+		//分配空间要给'\0'留个空间，MultiByteToWideChar不会给'\0'空间
+		wchar_t* _wszString = new wchar_t[_wcsLen + 1];
+		//转换
+		::MultiByteToWideChar(CP_UTF8, NULL, req_resv, strlen(req_resv), _wszString, _wcsLen);
+		//最后加上'\0'
+		_wszString[_wcsLen] = '\0';
+		_bstr_t _b(_wszString);
+		char *_rev_temp = _b;
+		//截取json
+		string str_rev(_rev_temp);
+		string json_rel;
+		int json_bg = str_rev.find_first_of("{", 0);
+		int json_end = str_rev.find_last_of("}");
+		if (json_end > json_bg)
 		{
-			if (js_vl["outMsg"].asString() == "交易明细上传正常")
+			json_rel = str_rev.substr(json_bg, json_end - json_bg + 1);
+			//写入上传日志
+			/*string str_send(buf_Send);
+			string str_log = str_send + json_rel;
+			W_UploadLog(str_log.c_str());*/
+			//同上，注释掉上面代码，此处修改为服务器返回信息单独写入
+			W_UploadLog(json_rel.c_str());
+			//解析json
+			Json::Value js_vl;
+			Json::Reader reader;
+			if (reader.parse(json_rel, js_vl))
 			{
-				W_ReadCardLog("INFO 交易明细上传正常");
-				return 0;
+				if (js_vl["outMsg"].asString() == "交易明细上传正常")
+				{
+					W_ReadCardLog("INFO 交易明细上传正常");
+					return 0;
+				}
+				else
+				{
+					W_ReadCardLog("ERROR 交易明细上传异常");
+					return -11;
+				}
 			}
-			else
-			{
-				W_ReadCardLog("ERROR 交易明细上传异常");
-				return -11;
-			}
+		}
+		else
+		{
+			W_ReadCardLog("ERROR 上传接口返回信息格式有误");
+			return -12;
 		}
 	}
 	else
 	{
-		W_ReadCardLog("ERROR 上传接口返回信息格式有误");
-		return -12;
+		return ret_sendpost;
 	}
+
 
 }
 //文件遍历和处理（目前只处理当日文档）
@@ -1098,9 +1126,13 @@ void OpFile()
 //打开连接
 long _stdcall OpenCom()
 {
+	W_ReadCardLog("EVENT 调用函数OpenCom");
+
 	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
+		W_ReadCardLog("ERROR -1801 加载动态库失败");
+
 		return -1801;
 	}
 	else
@@ -1108,12 +1140,16 @@ long _stdcall OpenCom()
 		opCom opencom = (opCom)GetProcAddress(hdllInst, "OpenCom");
 		if (opencom == NULL)
 		{
+			W_ReadCardLog("ERROR -1701 加载函数OpenCom失败");
+
 			FreeLibrary(hdllInst);
 			return -1701;
 		}
 		else
 		{
 			long status_opencom = opencom();
+			char _log[64] = { 0 };
+			sprintf(_log, "EVENT 调用函数OpenCom，返回%ld", status_opencom);
 			FreeLibrary(hdllInst);
 			return status_opencom;
 		}
@@ -1124,6 +1160,7 @@ void _stdcall CloseCom()
 {
 	HMODULE hdllInst = LoadLibraryA(CONDLL);
 	closeCom c_com = (closeCom)GetProcAddress(hdllInst, "CloseCom");
+	W_ReadCardLog("EVENT 调用函数CloseCom");
 	c_com();
 	FreeLibrary(hdllInst);
 }
@@ -1149,8 +1186,23 @@ long _stdcall  CapGetNBCardInfo(CUSTOMERINFO *info)
 		else
 		{
 			//CUSTOMERINFO *ctm_info;
-			char _log[128] = { 0 };
 			long status_getinfo = GetCardInfo(info);
+
+			//增加读卡-402后循环读卡功能，减少读卡失败几率 2018-11-14 11:41:51
+			const int MAX_TEST = 3;
+			int i = 0;
+			while ((-402 == status_getinfo) && (i < MAX_TEST))
+			{
+				W_ReadCardLog("ERROR 读卡状态-402，重新读卡");
+				CloseCom();
+				OpenCom();
+				status_getinfo = GetCardInfo(info);
+				char _testlog[64] = { 0 };
+				sprintf(_testlog, "INFO 第%d次尝试读卡,状态：%ld", i + 1, status_getinfo);
+				W_ReadCardLog(_testlog);
+				i++;
+			}
+			char _log[64] = { 0 };
 			sprintf(_log, "INFO 读卡结束，返回%ld", status_getinfo);
 			W_ReadCardLog(_log);
 			return status_getinfo;
@@ -1160,9 +1212,6 @@ long _stdcall  CapGetNBCardInfo(CUSTOMERINFO *info)
 long _stdcall CapNBQueryCard_NoVerify(long *UID)
 {
 	W_ReadCardLog("EVENT 调用函数CapNBQueryCard_NoVerify");
-	char info[64] = { 0 };
-	sprintf(info, "PARA UID:%ld", *UID);
-	W_ReadCardLog(info);
 	HMODULE  hdllInst = LoadLibraryA(CONDLL);
 	if (hdllInst == NULL)
 	{
@@ -1194,99 +1243,28 @@ long _stdcall CapNBQueryCard(long *UID)
 {
 	W_ReadCardLog("EVENT 调用函数CapNBQueryCard");
 	HMODULE  hdllInst = LoadLibraryA(CONDLL);
-
-
 	if (hdllInst == NULL)
 	{
-
 		W_ReadCardLog("ERROR -1801 寻卡加载动态库失败");
+
 		return -1801;
 	}
 	else
 	{
-		querycard QueryCard;
-
-		QueryCard = (querycard)GetProcAddress(hdllInst, "CapNBQueryCard");
-		if (QueryCard == NULL)
+		querycard qCard;
+		qCard = (querycard)GetProcAddress(hdllInst, "CapNBQueryCard");
+		if (qCard == NULL)
 		{
 			W_ReadCardLog("ERROR -1701 未能找到CapNBQueryCard接口");
-			FreeLibrary(hdllInst);
 			return -1701;
 		}
 		else
 		{
-			long query_status = QueryCard(UID);
-			char log[64] = { 0 };
-			sprintf(log, "INFO STATUS %d", query_status);
-			W_ReadCardLog(log);
-			const char* ipaddr = GetIPAddrINI();
-			short port = GetPortINI();
-			char recv_buf = '9';
-			long getblack_status = GetBlack_limit(ipaddr, port, *UID, &recv_buf);
-			if (getblack_status == 0)
-			{
-				//socket返回值为1，表示此卡UID在黑名单库中
-				if (recv_buf == '1')
-				{
-					is_black = -1;
-					FreeLibrary(hdllInst);
-					W_ReadCardLog("ERROR 463 黑卡");
-					return 463;
-				}
-				//socket返回值为2，表示接口服务异常，需重新请求
-				if (recv_buf == '2')
-				{
-					W_ReadCardLog("INFO 黑名单接口服务异常，重新请求");
-					int i = 0;
-					int max_count = 3;
-					while ((recv_buf == '2') && (i < max_count))
-					{
-						GetBlackList(ipaddr, port, *UID, &recv_buf);
-						i++;
-					}
-					switch (recv_buf)
-					{
-					case '2':
-						is_black = 0;
-						FreeLibrary(hdllInst);
-						W_ReadCardLog("ERROR 404 接口服务异常");
-						return 404;
-						break;
-					case '1':
-						is_black = -1;
-						FreeLibrary(hdllInst);
-						W_ReadCardLog("ERROR 463 黑卡");
-						return 463;
-						break;
-					case '0':
-						is_black = 1;
-						FreeLibrary(hdllInst);
-						W_ReadCardLog("INFO 正常卡");
-						return query_status;
-						break;
-					default:
-						FreeLibrary(hdllInst);
-						W_ReadCardLog("ERROR 51 未知错误");
-						return 51;
-						break;
-					}
-				}
-				else
-				{
-					is_black = 1;
-					FreeLibrary(hdllInst);
-					W_ReadCardLog("INFO 正常卡");
-					return query_status;
-				}
-			}
-
-			else
-			{
-				FreeLibrary(hdllInst);
-				//return 404;					//黑名单验证接口连接异常
-				W_ReadCardLog("ERROR 接口异常，返回配置文件端口号");
-				return (long)port;
-			}
+			long status_qCard = qCard(UID);
+			char _log[64] = { 0 };
+			sprintf(_log, "EVENT 调用函数CapNBQueryCard结束，返回%ld", status_qCard);
+			W_ReadCardLog(_log);
+			return status_qCard;
 		}
 	}
 }
@@ -1350,7 +1328,7 @@ long _stdcall CapSetNBCardInfo_Unload(long objNo, long UID, long opFare, LPSTR j
 //扣款,PSAM_ID使用LPSTR
 long _stdcall  CapSetNBCardInfo_temp(long objNo, long UID, long opFare, LPSTR jyDT, LPSTR psamID, long *psamJyNo, char *tac, int redix)
 {
-	if (is_black != 1)
+	if (VerifiBlackCard_UID(UID) != 0)
 	{
 		return -777;
 	}
@@ -1464,11 +1442,8 @@ long WINAPI CapSetNBCardInfo_Str1_Unload(long objNo, long uid, long opFare, LPST
 	sprintf(log, "PARA objNo:%d,UID:%d,opFare:%d,jyDT:%s", objNo, uid, opFare, jyDT);
 	W_ReadCardLog(log);
 	//根据UID进行黑名单验证
-	const char* ipaddr = GetIPAddrINI();
-	short port = GetPortINI();
-	char recv_buf = '9';
-	long getblack_status = GetBlack_limit(ipaddr, port, uid, &recv_buf);
-	if (recv_buf != '0')
+	long getblack_status = VerifiBlackCard_UID(uid);
+	if (getblack_status != 0)
 	{
 		W_ReadCardLog("ERROR -777 黑卡");
 		return -777;
@@ -1509,7 +1484,7 @@ long WINAPI CapSetNBCardInfo_Str1_Unload(long objNo, long uid, long opFare, LPST
 //扣费，无上次功能，无黑名单校验
 long WINAPI CapSetNBCardInfo_SLYY(long objNo, long uid, long opFare, LPSTR jyDT, char *psamID, long *psamJyNo, char *tac, int redix)
 {
-	W_ReadCardLog("EVENT 调用函数CapSetNBCardInfo_SLYY");
+	W_ReadCardLog("EVENT 调用函数CapSetNBCardInfo_SLYY开始");
 	char log[128] = { 0 };
 	sprintf(log, "PARA objNo:%d,UID:%d,opFare:%d,jyDT:%s", objNo, uid, opFare, jyDT);
 	W_ReadCardLog(log);
@@ -1548,106 +1523,110 @@ long WINAPI CapSetNBCardInfo_SLYY(long objNo, long uid, long opFare, LPSTR jyDT,
 //5.15.	扣款（psam卡号、TAC返回字符串）
 long WINAPI CapSetNBCardInfo_Str1(long objNo, long uid, long opFare, LPSTR jyDT, char *psamID, long *psamJyNo, char *tac, int redix)
 {
+	W_ReadCardLog("EVENT 调用函数CapSetNBCardInfo_Str1开始");
 	//对扣费JSON对象赋值
 	Json::Value Charging;
 	Json::FastWriter fw;
 	//调用读卡方法，获取账户余额
-	Sleep(200);
-	W_ReadCardLog("WARRING SLEEP");
-	CUSTOMERINFO custinfo;
-	long ret_getcard = CapGetNBCardInfo(&custinfo);
-	W_ReadCardLog("EVENT 调用函数CapGetNBCardInfo结束");
-	if (ret_getcard != 0)
+	Sleep(T);
+	if (VerifiBlackCard_UID(uid) != 0)
 	{
-		W_ReadCardLog("ERROR 读卡失败");
-		return ret_getcard;
+		return -777;
 	}
 	else
 	{
-		long ye = custinfo.Ye;
-		//判断卡内余额是否大于扣费金额
-		if (ye < opFare)
+		CUSTOMERINFO custinfo;
+		long ret_getcard = CapGetNBCardInfo(&custinfo);
+		W_ReadCardLog("EVENT 调用函数CapGetNBCardInfo结束");
+		if (ret_getcard != 0)
 		{
-			W_ReadCardLog("ERROR -11 卡内余额小于扣费金额");
-			return -11;
+			W_ReadCardLog("ERROR 读卡失败");
+			return ret_getcard;
 		}
 		else
 		{
-			Charging["Oddfare"] = ye;
-			string str_asn(custinfo.CardASN);
-			//CARDASN格式处理
-			string real_asn = str_asn.substr(4, strlen(custinfo.CardASN) - 6);
-			char *str_temp;
-			__int64 itemp = _strtoi64(real_asn.c_str(), &str_temp, 16);
-			Charging["CardNo"] = std::to_string(itemp);
-			Charging["OpCount"] = custinfo.OpCount;
-			Charging["CustomerId"] = std::to_string(custinfo.CustomerID);
+			long ye = custinfo.Ye;
+			//判断卡内余额是否大于扣费金额
+			if (ye < opFare)
+			{
+				W_ReadCardLog("ERROR -11 卡内余额小于扣费金额");
+				return -11;
+			}
+			else
+			{
+				Charging["Oddfare"] = ye;
+				string str_asn(custinfo.CardASN);
+				//CARDASN格式处理
+				string real_asn = str_asn.substr(4, strlen(custinfo.CardASN) - 6);
+				char *str_temp;
+				__int64 itemp = _strtoi64(real_asn.c_str(), &str_temp, 16);
+				Charging["CardNo"] = std::to_string(itemp);
+				Charging["OpCount"] = custinfo.OpCount;
+				Charging["CustomerId"] = std::to_string(custinfo.CustomerID);
+			}
 		}
-	}
-	//为减少扣费异常，在操作两个原始函数之间让线程休眠一小段时间
-	Sleep(200);
-	W_ReadCardLog("WARRING SLEEP");
-	int _redix = 10;
-	//开始扣费
-	char c_psamID[24] = { 0 };
-	char c_tac[24] = { 0 };
-	long _psamJyNo = 0;
-	long ret_setcard = CapSetNBCardInfo_Str1_Unload(objNo, uid, opFare, jyDT, c_psamID, &_psamJyNo, c_tac, _redix);
-	W_ReadCardLog("EVENT 调用函数CapSetNBCardInfo_SLYY结束");
+		//为减少扣费异常，在操作两个原始函数之间让线程休眠一小段时间
+		Sleep(T);
 
-	Charging["objNo"] = objNo;
-	Charging["uid"] = uid;
-	Charging["opfare"] = opFare;
-	Charging["psamId"] = c_psamID;
-	Charging["psamJyNo"] = _psamJyNo;
-	Charging["TAC"] = c_tac;
-	Charging["Ret"] = ret_setcard;
-	Charging["Upload"] = 0;
-	//增加交易记录流水号入参
-	//处理交易时间格式
-	std::string str_dt(jyDT);
-	std::string str_trunce;
-	while (str_dt.find("-") != -1)
-	{
-		str_trunce = str_dt.replace(str_dt.find("-"), 1, "");
-	}
-	while (str_dt.find(":") != -1)
-	{
-		str_trunce = str_dt.replace(str_dt.find(":"), 1, "");
-	}
-	while (str_dt.find(" ") != -1)
-	{
-		str_trunce = str_dt.replace(str_dt.find(" "), 1, "");
-	}
-	Charging["opDatetime"] = str_trunce.c_str();
+		int _redix = 10;
+		//开始扣费
+		
+		long ret_setcard = CapSetNBCardInfo_SLYY(objNo, uid, opFare, jyDT, psamID,psamJyNo, tac, _redix);
+		W_ReadCardLog("EVENT 调用函数CapSetNBCardInfo_SLYY结束");
+		Charging["objNo"] = objNo;
+		Charging["uid"] = uid;
+		Charging["opfare"] = opFare;
+		Charging["psamId"] = psamID;
+		Charging["psamJyNo"] = *psamJyNo;
+		Charging["TAC"] = tac;
+		Charging["Ret"] = ret_setcard;
+		Charging["Upload"] = 0;
+		//增加交易记录流水号入参
+		//处理交易时间格式
+		std::string str_dt(jyDT);
+		std::string str_trunce;
+		while (str_dt.find("-") != -1)
+		{
+			str_trunce = str_dt.replace(str_dt.find("-"), 1, "");
+		}
+		while (str_dt.find(":") != -1)
+		{
+			str_trunce = str_dt.replace(str_dt.find(":"), 1, "");
+		}
+		while (str_dt.find(" ") != -1)
+		{
+			str_trunce = str_dt.replace(str_dt.find(" "), 1, "");
+		}
+		Charging["opDatetime"] = str_trunce.c_str();
 
-	//调用写入文本方法（写入原始文档目录）
-	W_ReadCardLog("EVENT 开始写入待上传数据");
-	std::string jsonstr = fw.write(Charging);
-	const char* org_path = "./Log//ORG";
-	if (_access(org_path, 0) == -1)
-	{
-		_mkdir(org_path);
+		//调用写入文本方法（写入原始文档目录）
+		W_ReadCardLog("EVENT 开始写入待上传数据");
+		std::string jsonstr = fw.write(Charging);
+		const char* org_path = "./Log//ORG";
+		if (_access(org_path, 0) == -1)
+		{
+			_mkdir(org_path);
+		}
+		SYSTEMTIME st = { 0 };
+		GetLocalTime(&st);
+		char filename[64] = { 0 };
+		sprintf(filename, "./Log//ORG//ORG_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
+		WriteInFile(filename, jsonstr);
+		//同时写入一份到预处理目录
+		const char* pre_path = "./Log//Pre";
+		if (_access(pre_path, 0) == -1)
+		{
+			_mkdir(pre_path);
+		}
+		char pre_filename[64] = { 0 };
+		sprintf(pre_filename, "./Log//Pre//Pre_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
+		WriteInFile(pre_filename, jsonstr);
+		/*std::thread t(OpFile);
+		t.detach();*/
+		OpFile();
+		W_ReadCardLog("EVENT 调用函数OpFile结束");
+		return ret_setcard;
 	}
-	SYSTEMTIME st = { 0 };
-	GetLocalTime(&st);
-	char filename[64] = { 0 };
-	sprintf(filename, "./Log//ORG//ORG_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
-	WriteInFile(filename, jsonstr);
-	//同时写入一份到预处理目录
-	const char* pre_path = "./Log//Pre";
-	if (_access(pre_path, 0) == -1)
-	{
-		_mkdir(pre_path);
-	}
-	char pre_filename[64] = { 0 };
-	sprintf(pre_filename, "./Log//Pre//Pre_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
-	WriteInFile(pre_filename, jsonstr);
-	/*std::thread t(OpFile);
-	t.detach();*/
-	OpFile();
-	W_ReadCardLog("EVENT 调用函数OpFile结束");
-	return ret_setcard;
 }
 //5.8.	更新日累计消费
 long _stdcall CapUpdateNBCardStatus(long opFare, LPSTR jyDT)
@@ -1799,153 +1778,151 @@ long _stdcall CapSetNBCardInfo_Str_Unload(long objNo, long uid, long opFare, LPS
 	char log[128] = { 0 };
 	sprintf(log, "PARA objNo:%d,UID:%d,opFare:%d,jyDT:%s", objNo, uid, opFare, jyDT);
 	W_ReadCardLog(log);
-	//根据UID进行黑名单验证
-	const char* ipaddr = GetIPAddrINI();
-	short port = GetPortINI();
-	char recv_buf = '9';
-	long getblack_status = GetBlack_limit(ipaddr, port, uid, &recv_buf);
-	if (recv_buf != '0')
+
+	HMODULE hdllInst = LoadLibraryA(CONDLL);
+	if (hdllInst == NULL)
 	{
-		W_ReadCardLog("ERROR -777 黑卡");
-		return -777;
+		W_ReadCardLog("ERROR -1801 寻卡加载动态库失败");
+		return -1801;
 	}
 	else
 	{
-		HMODULE hdllInst = LoadLibraryA(CONDLL);
-		if (hdllInst == NULL)
+		setcardinfo_str set_cardstr = (setcardinfo_str)GetProcAddress(hdllInst, "CapSetNBCardInfo_Str");
+		if (set_cardstr == NULL)
 		{
-			W_ReadCardLog("ERROR -1801 寻卡加载动态库失败");
-			return -1801;
+			W_ReadCardLog("ERROR -1701 未能找到CapSetNBCardInfo_Str接口");
+			FreeLibrary(hdllInst);
+			return -1701;
 		}
 		else
 		{
-			setcardinfo_str set_cardstr = (setcardinfo_str)GetProcAddress(hdllInst, "CapSetNBCardInfo_Str");
-			if (set_cardstr == NULL)
-			{
-				W_ReadCardLog("ERROR -1701 未能找到CapSetNBCardInfo_Str接口");
-				FreeLibrary(hdllInst);
-				return -1701;
-			}
-			else
-			{
-				long status_setcardstr = set_cardstr(objNo, uid, opFare, jyDT, psamID, psamJyNo, tac, redix);
-				char* str_jydt = jyDT;
-				
-				char* str_tac = tac;
-				char _log[1024];
-				sprintf(_log, "PARA objNO:%ld,UID:%ld,opFare:%ld,jyDT:%s,redix:%d,psamID:%lld,psamJyNo:%ld,tac:%s;status:%d", objNo, uid, opFare, str_jydt, redix, psamID, psamJyNo, str_tac, status_setcardstr);
-				//W_log(_log);	//原日志弃用，整合到./Log/ReadCard.log
-				W_ReadCardLog(_log);
-				FreeLibrary(hdllInst);
-				return status_setcardstr;
-			}
+			long status_setcardstr = set_cardstr(objNo, uid, opFare, jyDT, psamID, psamJyNo, tac, redix);
+			char* str_jydt = jyDT;
+
+			//char* str_tac = tac;
+			char _log[512];
+			sprintf(_log, "PARA objNO:%ld,UID:%ld,opFare:%ld,jyDT:%s,redix:%d,psamID:%lld,psamJyNo:%ld,tac:%s;status:%d", objNo, uid, opFare, str_jydt, redix, psamID, psamJyNo, tac, status_setcardstr);
+			//W_log(_log);	//原日志弃用，整合到./Log/ReadCard.log
+			W_ReadCardLog(_log);
+			FreeLibrary(hdllInst);
+			return status_setcardstr;
 		}
 	}
+
 }
 //扣款，增加上传功能
 long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT, __int64 *psamID, long *psamJyNo, char *tac, int redix)
 {
+	W_ReadCardLog("EVENT 调用函数CapSetNBCardInfo_Str开始");
 	//对扣费JSON对象赋值
 	Json::Value Charging;
 	Json::FastWriter fw;
-	//调用读卡方法，获取账户余额
-	Sleep(200);
-	W_ReadCardLog("WARRING SLEEP");
-	CUSTOMERINFO custinfo;
-	long ret_getcard = CapGetNBCardInfo(&custinfo);
-	W_ReadCardLog("EVENT 调用函数CapGetNBCardInfo结束");
-	if (ret_getcard != 0)
+	if (VerifiBlackCard_UID(uid) != 0)
 	{
-		W_ReadCardLog("ERROR 读卡失败");
-		return ret_getcard;
+		return -777;
 	}
 	else
 	{
-		long ye = custinfo.Ye;
-		//判断卡内余额是否大于扣费金额
-		if (ye < opFare)
+		//调用读卡方法，获取账户余额
+		Sleep(T);
+
+		CUSTOMERINFO custinfo;
+		long ret_getcard = CapGetNBCardInfo(&custinfo);
+		W_ReadCardLog("EVENT 调用函数CapGetNBCardInfo结束");
+		if (ret_getcard != 0)
 		{
-			W_ReadCardLog("ERROR -11 卡内余额小于扣费金额");
-			return -11;
+			W_ReadCardLog("ERROR 读卡失败");
+			return ret_getcard;
 		}
 		else
 		{
-			Charging["Oddfare"] = ye;
-			string str_asn(custinfo.CardASN);
-			//CARDASN格式处理
-			string real_asn = str_asn.substr(4, strlen(custinfo.CardASN) - 6);
-			char *str_temp;
-			__int64 itemp = _strtoi64(real_asn.c_str(), &str_temp, 16);
-			Charging["CardNo"] = std::to_string(itemp);
-			Charging["OpCount"] = custinfo.OpCount;
-			Charging["CustomerId"] = std::to_string(custinfo.CustomerID);
+			long ye = custinfo.Ye;
+			//判断卡内余额是否大于扣费金额
+			if (ye < opFare)
+			{
+				W_ReadCardLog("ERROR -11 卡内余额小于扣费金额");
+				return -11;
+			}
+			else
+			{
+				Charging["Oddfare"] = ye;
+				string str_asn(custinfo.CardASN);
+				//CARDASN格式处理
+				string real_asn = str_asn.substr(4, strlen(custinfo.CardASN) - 6);
+				char *str_temp;
+				__int64 itemp = _strtoi64(real_asn.c_str(), &str_temp, 16);
+				Charging["CardNo"] = std::to_string(itemp);
+				Charging["OpCount"] = custinfo.OpCount;
+				Charging["CustomerId"] = std::to_string(custinfo.CustomerID);
+			}
 		}
-	}
-	//为减少扣费异常，在操作两个原始函数之间让线程休眠一小段时间
-	Sleep(200);
-	W_ReadCardLog("WARRING SLEEP");
-	int _redix = 10;
-	//开始扣费
-	LONGLONG c_psamID = 0;
-	char c_tac[24] = { 0 };
-	long _psamJyNo = 0;
-	long ret_setcard = CapSetNBCardInfo_Str_Unload(objNo, uid, opFare, jyDT, &c_psamID, &_psamJyNo, c_tac, _redix);
-	W_ReadCardLog("EVENT 调用函数CapSetNBCardInfo_SLYY结束");
+		//为减少扣费异常，在操作两个原始函数之间让线程休眠一小段时间
+		Sleep(T);
 
-	Charging["objNo"] = objNo;
-	Charging["uid"] = uid;
-	Charging["opfare"] = opFare;
-	Charging["psamId"] = c_psamID;
-	Charging["psamJyNo"] = _psamJyNo;
-	Charging["TAC"] = c_tac;
-	Charging["Ret"] = ret_setcard;
-	Charging["Upload"] = 0;
-	//增加交易记录流水号入参
-	//处理交易时间格式
-	std::string str_dt(jyDT);
-	std::string str_trunce;
-	while (str_dt.find("-") != -1)
-	{
-		str_trunce = str_dt.replace(str_dt.find("-"), 1, "");
-	}
-	while (str_dt.find(":") != -1)
-	{
-		str_trunce = str_dt.replace(str_dt.find(":"), 1, "");
-	}
-	while (str_dt.find(" ") != -1)
-	{
-		str_trunce = str_dt.replace(str_dt.find(" "), 1, "");
-	}
-	Charging["opDatetime"] = str_trunce.c_str();
+		int _redix = 10;
+		//开始扣费
+		LONGLONG c_psamID = 0;
+		char c_tac[24] = { 0 };
+		long _psamJyNo = 0;
+		long ret_setcard = CapSetNBCardInfo_Str_Unload(objNo, uid, opFare, jyDT, &c_psamID, &_psamJyNo, c_tac, _redix);
+		W_ReadCardLog("EVENT 调用函数CapSetNBCardInfo_Str_Unload结束");
+		*psamID = c_psamID;
+		*psamJyNo = _psamJyNo;
+		strcpy(tac, c_tac);
+		Charging["objNo"] = objNo;
+		Charging["uid"] = uid;
+		Charging["opfare"] = opFare;
+		Charging["psamId"] = c_psamID;
+		Charging["psamJyNo"] = _psamJyNo;
+		Charging["TAC"] = c_tac;
+		Charging["Ret"] = ret_setcard;
+		Charging["Upload"] = 0;
+		//增加交易记录流水号入参
+		//处理交易时间格式
+		std::string str_dt(jyDT);
+		std::string str_trunce;
+		while (str_dt.find("-") != -1)
+		{
+			str_trunce = str_dt.replace(str_dt.find("-"), 1, "");
+		}
+		while (str_dt.find(":") != -1)
+		{
+			str_trunce = str_dt.replace(str_dt.find(":"), 1, "");
+		}
+		while (str_dt.find(" ") != -1)
+		{
+			str_trunce = str_dt.replace(str_dt.find(" "), 1, "");
+		}
+		Charging["opDatetime"] = str_trunce.c_str();
 
-	//调用写入文本方法（写入原始文档目录）
-	W_ReadCardLog("EVENT 开始写入待上传数据");
-	std::string jsonstr = fw.write(Charging);
-	const char* org_path = "./Log//ORG";
-	if (_access(org_path, 0) == -1)
-	{
-		_mkdir(org_path);
+		//调用写入文本方法（写入原始文档目录）
+		W_ReadCardLog("EVENT 开始写入待上传数据");
+		std::string jsonstr = fw.write(Charging);
+		const char* org_path = "./Log//ORG";
+		if (_access(org_path, 0) == -1)
+		{
+			_mkdir(org_path);
+		}
+		SYSTEMTIME st = { 0 };
+		GetLocalTime(&st);
+		char filename[64] = { 0 };
+		sprintf(filename, "./Log//ORG//ORG_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
+		WriteInFile(filename, jsonstr);
+		//同时写入一份到预处理目录
+		const char* pre_path = "./Log//Pre";
+		if (_access(pre_path, 0) == -1)
+		{
+			_mkdir(pre_path);
+		}
+		char pre_filename[64] = { 0 };
+		sprintf(pre_filename, "./Log//Pre//Pre_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
+		WriteInFile(pre_filename, jsonstr);
+		/*std::thread t(OpFile);
+		t.detach();*/
+		OpFile();
+		W_ReadCardLog("EVENT 调用函数OpFile结束");
+		return ret_setcard;
 	}
-	SYSTEMTIME st = { 0 };
-	GetLocalTime(&st);
-	char filename[64] = { 0 };
-	sprintf(filename, "./Log//ORG//ORG_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
-	WriteInFile(filename, jsonstr);
-	//同时写入一份到预处理目录
-	const char* pre_path = "./Log//Pre";
-	if (_access(pre_path, 0) == -1)
-	{
-		_mkdir(pre_path);
-	}
-	char pre_filename[64] = { 0 };
-	sprintf(pre_filename, "./Log//Pre//Pre_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
-	WriteInFile(pre_filename, jsonstr);
-	/*std::thread t(OpFile);
-	t.detach();*/
-	OpFile();
-	W_ReadCardLog("EVENT 调用函数OpFile结束");
-	return ret_setcard;
-
 }
 //5.13.	获取tac值
 long _stdcall CapGetConsumeTac(long no, LPSTR tac)
@@ -2003,111 +1980,119 @@ long _stdcall CapReadRecords(CONSUMEINFO* info)
 //扣费，增加上传功能
 long _stdcall CapSetNBCardInfo(long objNo, long UID, long opFare, LPSTR jyDT, __int64 *psamID, long *psamJyNo, __int64 *tac)
 {
+	W_ReadCardLog("EVENT 调用函数CapSetNBCardInfo开始");
 	Json::Value Charging;
 	Json::FastWriter fw;
-	//调用读卡方法，获取账户余额
-	Sleep(200);
-	W_ReadCardLog("WARRING SLEEP");
-	CUSTOMERINFO custinfo;
-	long ret_getcard = CapGetNBCardInfo(&custinfo);
-	W_ReadCardLog("EVENT 调用函数CapGetNBCardInfo结束");
-	if (ret_getcard != 0)
+	if (VerifiBlackCard_UID(UID) != 0)
 	{
-		W_ReadCardLog("ERROR 读卡失败");
-		return ret_getcard;
+		return -777;
 	}
 	else
 	{
-		long ye = custinfo.Ye;
-		//判断卡内余额是否大于扣费金额
-		if (ye < opFare)
+		//调用读卡方法，获取账户余额
+		Sleep(T);
+
+		CUSTOMERINFO custinfo;
+		long ret_getcard = CapGetNBCardInfo(&custinfo);
+		W_ReadCardLog("EVENT 调用函数CapGetNBCardInfo结束");
+		if (ret_getcard != 0)
 		{
-			W_ReadCardLog("ERROR -11 卡内余额小于扣费金额");
-			return -11;
+			W_ReadCardLog("ERROR 读卡失败");
+			return ret_getcard;
 		}
 		else
 		{
-			Charging["Oddfare"] = custinfo.Ye;
-			string str_asn(custinfo.CardASN);
-			string real_asn = str_asn.substr(4, strlen(custinfo.CardASN) - 6);
-			char *str_temp;
-			__int64 itemp = _strtoi64(real_asn.c_str(), &str_temp, 16);
-			Charging["CardNo"] = std::to_string(itemp);
-			Charging["OpCount"] = custinfo.OpCount;
-			Charging["CustomerId"] = std::to_string(custinfo.CustomerID);
+			long ye = custinfo.Ye;
+			//判断卡内余额是否大于扣费金额
+			if (ye < opFare)
+			{
+				W_ReadCardLog("ERROR -11 卡内余额小于扣费金额");
+				return -11;
+			}
+			else
+			{
+				Charging["Oddfare"] = custinfo.Ye;
+				string str_asn(custinfo.CardASN);
+				string real_asn = str_asn.substr(4, strlen(custinfo.CardASN) - 6);
+				char *str_temp;
+				__int64 itemp = _strtoi64(real_asn.c_str(), &str_temp, 16);
+				Charging["CardNo"] = std::to_string(itemp);
+				Charging["OpCount"] = custinfo.OpCount;
+				Charging["CustomerId"] = std::to_string(custinfo.CustomerID);
+			}
 		}
-	}
 
-	//为减少扣费异常，在操作两个原始函数之间让线程休眠一小段时间
-	Sleep(200);
-	W_ReadCardLog("WARRING SLEEP");
-	int _redix = 10;
-	char c_psamID[24] = { 0 };
-	char c_tac[24] = { 0 };
-	long _psamJyNo = 0;
-	long ret_setcard = CapSetNBCardInfo_Str1_Unload(objNo, UID, opFare, jyDT, c_psamID, &_psamJyNo, c_tac, _redix);
-	W_ReadCardLog("EVENT 调用函数CapSetNBCardInfo_Str1_Unload结束");
-	*psamID = _atoi64(c_psamID);
-	*tac = _atoi64(c_tac);
-	//对扣费JSON对象赋值
-	Charging["objNo"] = objNo;
-	Charging["uid"] = UID;
-	Charging["opfare"] = opFare;
-	char str_psamID[24] = { 0 };
-	_i64toa(*psamID, str_psamID, 10);
-	Charging["psamId"] = str_psamID;
-	Charging["psamJyNo"] = _psamJyNo;
-	char str_tac[24] = { 0 };
-	_i64toa(*tac, str_tac, 10);
-	Charging["TAC"] = str_tac;
-	Charging["Ret"] = ret_setcard;
-	Charging["Upload"] = 0;
-	//增加交易记录流水号入参
-	//Charging["TradeRecNo"] = TradeRecNo;
-	//处理交易时间格式
-	std::string str_dt(jyDT);
-	std::string str_trunce;
-	while (str_dt.find("-") != -1)
-	{
-		str_trunce = str_dt.replace(str_dt.find("-"), 1, "");
-	}
-	while (str_dt.find(":") != -1)
-	{
-		str_trunce = str_dt.replace(str_dt.find(":"), 1, "");
-	}
-	while (str_dt.find(" ") != -1)
-	{
-		str_trunce = str_dt.replace(str_dt.find(" "), 1, "");
-	}
-	Charging["opDatetime"] = str_trunce.c_str();
-	//调用写入文本方法（写入原始文档目录）
-	W_ReadCardLog("EVENT 开始写入待上传数据");
-	std::string jsonstr = fw.write(Charging);
-	//调用写入文本方法（写入原始文档目录）
-	const char* org_path = "./Log//ORG";
-	if (_access(org_path, 0) == -1)
-	{
-		_mkdir(org_path);
-	}
-	SYSTEMTIME st = { 0 };
-	GetLocalTime(&st);
-	char filename[64] = { 0 };
-	sprintf(filename, "./Log//ORG//ORG_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
-	WriteInFile(filename, jsonstr);
-	//同时写入一份到预处理目录
-	const char* pre_path = "./Log//Pre";
-	if (_access(pre_path, 0) == -1)
-	{
-		_mkdir(pre_path);
-	}
-	char pre_filename[64] = { 0 };
-	sprintf(pre_filename, "./Log//Pre//Pre_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
-	WriteInFile(pre_filename, jsonstr);
+		//为减少扣费异常，在操作两个原始函数之间让线程休眠一小段时间
+		Sleep(T);
 
-	OpFile();
-	W_ReadCardLog("EVENT 调用函数OpFile结束");
-	return ret_setcard;
+		int _redix = 10;
+		char c_psamID[24] = { 0 };
+		char c_tac[24] = { 0 };
+		long _psamJyNo = 0;
+		long ret_setcard = CapSetNBCardInfo_SLYY(objNo, UID, opFare, jyDT, c_psamID, &_psamJyNo, c_tac, _redix);
+		W_ReadCardLog("EVENT 调用函数CapSetNBCardInfo_SLYY结束");
+		*psamID = _atoi64(c_psamID);
+		*psamJyNo = _psamJyNo;
+		*tac = _atoi64(c_tac);
+		//对扣费JSON对象赋值
+		Charging["objNo"] = objNo;
+		Charging["uid"] = UID;
+		Charging["opfare"] = opFare;
+		char str_psamID[24] = { 0 };
+		_i64toa(*psamID, str_psamID, 10);
+		Charging["psamId"] = str_psamID;
+		Charging["psamJyNo"] = _psamJyNo;
+		char str_tac[24] = { 0 };
+		_i64toa(*tac, str_tac, 10);
+		Charging["TAC"] = str_tac;
+		Charging["Ret"] = ret_setcard;
+		Charging["Upload"] = 0;
+		//增加交易记录流水号入参
+		//Charging["TradeRecNo"] = TradeRecNo;
+		//处理交易时间格式
+		std::string str_dt(jyDT);
+		std::string str_trunce;
+		while (str_dt.find("-") != -1)
+		{
+			str_trunce = str_dt.replace(str_dt.find("-"), 1, "");
+		}
+		while (str_dt.find(":") != -1)
+		{
+			str_trunce = str_dt.replace(str_dt.find(":"), 1, "");
+		}
+		while (str_dt.find(" ") != -1)
+		{
+			str_trunce = str_dt.replace(str_dt.find(" "), 1, "");
+		}
+		Charging["opDatetime"] = str_trunce.c_str();
+		//调用写入文本方法（写入原始文档目录）
+		W_ReadCardLog("EVENT 开始写入待上传数据");
+		std::string jsonstr = fw.write(Charging);
+		//调用写入文本方法（写入原始文档目录）
+		const char* org_path = "./Log//ORG";
+		if (_access(org_path, 0) == -1)
+		{
+			_mkdir(org_path);
+		}
+		SYSTEMTIME st = { 0 };
+		GetLocalTime(&st);
+		char filename[64] = { 0 };
+		sprintf(filename, "./Log//ORG//ORG_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
+		WriteInFile(filename, jsonstr);
+		//同时写入一份到预处理目录
+		const char* pre_path = "./Log//Pre";
+		if (_access(pre_path, 0) == -1)
+		{
+			_mkdir(pre_path);
+		}
+		char pre_filename[64] = { 0 };
+		sprintf(pre_filename, "./Log//Pre//Pre_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
+		WriteInFile(pre_filename, jsonstr);
 
+		OpFile();
+		W_ReadCardLog("EVENT 调用函数OpFile结束");
+		return ret_setcard;
+	}
 
 }
 
@@ -2191,13 +2176,13 @@ int _stdcall PowerOn(HANDLE hdev, int slot, char* atr)
 			int _slot = slot;
 			char* _atr = atr;
 			int status_poweron = power_on(hdev, slot, atr);
-			if (status_poweron!=0)
+			if (status_poweron != 0)
 			{
-				if (1==slot)
+				if (1 == slot)
 				{
 					W_ReadCardLog("ERROR 用户卡复位失败");
 				}
-				else if (3==slot)
+				else if (3 == slot)
 				{
 					W_ReadCardLog("ERROR PSAM卡复位失败");
 
@@ -3050,13 +3035,13 @@ int _stdcall iW_DF03EDInfo(HANDLE hdev, int record, char* szdata, int npos, int 
 		{
 			char _log[128] = { 0 };
 			int stauts_df03ed = df03ed(hdev, record, szdata, npos, nlen, nstyle);
-			if (0==stauts_df03ed)
+			if (0 == stauts_df03ed)
 			{
-				sprintf(_log,"INFO record:%d,npos:%d,nlen:%d,写入成功", record, npos, nlen);
+				sprintf(_log, "INFO record:%d,npos:%d,nlen:%d,写入成功", record, npos, nlen);
 			}
 			else
 			{
-				sprintf(_log, "ERROR record:%d,npos:%d,nlen:%d,写入失败，返回%d", record, npos, nlen,stauts_df03ed);
+				sprintf(_log, "ERROR record:%d,npos:%d,nlen:%d,写入失败，返回%d", record, npos, nlen, stauts_df03ed);
 			}
 			FreeLibrary(hdllInst);
 			return stauts_df03ed;
@@ -3299,7 +3284,7 @@ int _stdcall XDT_GetHisInfo(HANDLE hdev, char* cardno, long* ye, char* xm, char*
 //读卡
 long WINAPI XDT_BaseInfo(BASEINFO *info)
 {
-	const int T = 300;
+	W_ReadCardLog("EVENT 调用函数XDT_BaseInfo开始");
 	BASEINFO _info;
 	int op = OpenCom();
 	long _uid = -1;
@@ -3355,6 +3340,7 @@ long WINAPI XDT_BaseInfo(BASEINFO *info)
 						long pw1_st = PowerOn(hdev, 1, _atr);
 						Sleep(T);
 						long pw3_st = PowerOn(hdev, 3, _atr);
+
 						if ((pw1_st != 0) || (pw3_st != 0))
 						{
 							return -5;
@@ -3420,119 +3406,126 @@ long WINAPI XDT_SetCardInfo(long objNo, long opFare, LPSTR TradeRecNo, LPSTR jyD
 	}
 	else
 	{
-		//对扣费JSON对象赋值
-		Json::Value Charging;
-		Json::FastWriter fw;
-		//调用读卡方法，获取账户余额
-		Sleep(200);
-		W_ReadCardLog("WARRING SLEEP");
-		CUSTOMERINFO custinfo;
-		long ret_getcard = CapGetNBCardInfo(&custinfo);
-		W_ReadCardLog("EVENT 调用函数CapGetNBCardInfo结束");
-		if (ret_getcard != 0)
+		if (VerifiBlackCard_UID(_uid) != 0)
 		{
-			W_ReadCardLog("ERROR 读卡失败");
-			return ret_getcard;
+			return -777;
 		}
 		else
 		{
-			long ye = custinfo.Ye;
-			//判断卡内余额是否大于扣费金额
-			if (ye < opFare)
+			//对扣费JSON对象赋值
+			Json::Value Charging;
+			Json::FastWriter fw;
+			//调用读卡方法，获取账户余额
+			Sleep(T);
+
+			CUSTOMERINFO custinfo;
+			long ret_getcard = CapGetNBCardInfo(&custinfo);
+			W_ReadCardLog("EVENT 调用函数CapGetNBCardInfo结束");
+			if (ret_getcard != 0)
 			{
-				W_ReadCardLog("ERROR -11 卡内余额小于扣费金额");
-				return -11;
+				W_ReadCardLog("ERROR 读卡失败");
+				return ret_getcard;
 			}
 			else
 			{
-				Charging["Oddfare"] = ye;
-				string str_asn(custinfo.CardASN);
-				//CARDASN格式处理
-				string real_asn = str_asn.substr(4, strlen(custinfo.CardASN) - 6);
-				char *str_temp;
-				__int64 itemp = _strtoi64(real_asn.c_str(), &str_temp, 16);
-				Charging["CardNo"] = std::to_string(itemp);
-				Charging["OpCount"] = custinfo.OpCount;
-				Charging["CustomerId"] = std::to_string(custinfo.CustomerID);
+				long ye = custinfo.Ye;
+				//判断卡内余额是否大于扣费金额
+				if (ye < opFare)
+				{
+					W_ReadCardLog("ERROR -11 卡内余额小于扣费金额");
+					return -11;
+				}
+				else
+				{
+					Charging["Oddfare"] = ye;
+					string str_asn(custinfo.CardASN);
+					//CARDASN格式处理
+					string real_asn = str_asn.substr(4, strlen(custinfo.CardASN) - 6);
+					char *str_temp;
+					__int64 itemp = _strtoi64(real_asn.c_str(), &str_temp, 16);
+					Charging["CardNo"] = std::to_string(itemp);
+					Charging["OpCount"] = custinfo.OpCount;
+					Charging["CustomerId"] = std::to_string(custinfo.CustomerID);
+				}
 			}
-		}
-		//为减少扣费异常，在操作两个原始函数之间让线程休眠一小段时间
-		Sleep(200);
-		W_ReadCardLog("WARRING SLEEP");
-		int _redix = 10;
-		char c_psamID[24] = { 0 };
-		char c_tac[24] = { 0 };
-		long _psamJyNo = 0;
-		//开始扣费
-		long ret_setcard = CapSetNBCardInfo_SLYY(objNo, _uid, opFare, jyDT, c_psamID, &_psamJyNo, c_tac, _redix);
-		W_ReadCardLog("EVENT 调用函数CapSetNBCardInfo_SLYY结束");
+			//为减少扣费异常，在操作两个原始函数之间让线程休眠一小段时间
+			Sleep(T);
 
-		Charging["objNo"] = objNo;
-		Charging["uid"] = _uid;
-		Charging["opfare"] = opFare;
-		Charging["psamId"] = c_psamID;
-		Charging["psamJyNo"] = _psamJyNo;
-		Charging["TAC"] = c_tac;
-		Charging["Ret"] = ret_setcard;
-		Charging["Upload"] = 0;
-		//增加交易记录流水号入参
-		Charging["TradeRecNo"] = TradeRecNo;
-		//处理交易时间格式
-		std::string str_dt(jyDT);
-		std::string str_trunce;
-		while (str_dt.find("-") != -1)
-		{
-			str_trunce = str_dt.replace(str_dt.find("-"), 1, "");
-		}
-		while (str_dt.find(":") != -1)
-		{
-			str_trunce = str_dt.replace(str_dt.find(":"), 1, "");
-		}
-		while (str_dt.find(" ") != -1)
-		{
-			str_trunce = str_dt.replace(str_dt.find(" "), 1, "");
-		}
-		Charging["opDatetime"] = str_trunce.c_str();
+			int _redix = 10;
+			char c_psamID[24] = { 0 };
+			char c_tac[24] = { 0 };
+			long _psamJyNo = 0;
+			//开始扣费
+			long ret_setcard = CapSetNBCardInfo_SLYY(objNo, _uid, opFare, jyDT, c_psamID, &_psamJyNo, c_tac, _redix);
+			W_ReadCardLog("EVENT 调用函数CapSetNBCardInfo_SLYY结束");
+			strcpy(psamID, c_psamID);
+			*psamJyNo = _psamJyNo;
+			strcpy(tac, c_tac);
+			Charging["objNo"] = objNo;
+			Charging["uid"] = _uid;
+			Charging["opfare"] = opFare;
+			Charging["psamId"] = c_psamID;
+			Charging["psamJyNo"] = _psamJyNo;
+			Charging["TAC"] = c_tac;
+			Charging["Ret"] = ret_setcard;
+			Charging["Upload"] = 0;
+			//增加交易记录流水号入参
+			Charging["TradeRecNo"] = TradeRecNo;
+			//处理交易时间格式
+			std::string str_dt(jyDT);
+			std::string str_trunce;
+			while (str_dt.find("-") != -1)
+			{
+				str_trunce = str_dt.replace(str_dt.find("-"), 1, "");
+			}
+			while (str_dt.find(":") != -1)
+			{
+				str_trunce = str_dt.replace(str_dt.find(":"), 1, "");
+			}
+			while (str_dt.find(" ") != -1)
+			{
+				str_trunce = str_dt.replace(str_dt.find(" "), 1, "");
+			}
+			Charging["opDatetime"] = str_trunce.c_str();
 
-		//调用写入文本方法（写入原始文档目录）
-		W_ReadCardLog("EVENT 开始写入待上传数据");
-		std::string jsonstr = fw.write(Charging);
-		const char* org_path = "./Log//ORG";
-		if (_access(org_path, 0) == -1)
-		{
-			_mkdir(org_path);
+			//调用写入文本方法（写入原始文档目录）
+			W_ReadCardLog("EVENT 开始写入待上传数据");
+			std::string jsonstr = fw.write(Charging);
+			const char* org_path = "./Log//ORG";
+			if (_access(org_path, 0) == -1)
+			{
+				_mkdir(org_path);
+			}
+			SYSTEMTIME st = { 0 };
+			GetLocalTime(&st);
+			char filename[64] = { 0 };
+			sprintf(filename, "./Log//ORG//ORG_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
+			WriteInFile(filename, jsonstr);
+			//同时写入一份到预处理目录
+			const char* pre_path = "./Log//Pre";
+			if (_access(pre_path, 0) == -1)
+			{
+				_mkdir(pre_path);
+			}
+			char pre_filename[64] = { 0 };
+			sprintf(pre_filename, "./Log//Pre//Pre_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
+			WriteInFile(pre_filename, jsonstr);
+			/*std::thread t(OpFile);
+			t.detach();*/
+			OpFile();
+			W_ReadCardLog("EVENT 调用函数OpFile结束");
+			return ret_setcard;
 		}
-		SYSTEMTIME st = { 0 };
-		GetLocalTime(&st);
-		char filename[64] = { 0 };
-		sprintf(filename, "./Log//ORG//ORG_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
-		WriteInFile(filename, jsonstr);
-		//同时写入一份到预处理目录
-		const char* pre_path = "./Log//Pre";
-		if (_access(pre_path, 0) == -1)
-		{
-			_mkdir(pre_path);
-		}
-		char pre_filename[64] = { 0 };
-		sprintf(pre_filename, "./Log//Pre//Pre_%d%02d%02d.dat", st.wYear, st.wMonth, st.wDay);
-		WriteInFile(pre_filename, jsonstr);
-		/*std::thread t(OpFile);
-		t.detach();*/
-		OpFile();
-		W_ReadCardLog("EVENT 调用函数OpFile结束");
-		return ret_setcard;
 	}
 }
 long WINAPI XDT_BaseInfo_Json(char* _json, char* _name, long *UID)
 {
-	const int T = 300;
 	BASEINFO _info;
 	Json::Value root;
 	Json::FastWriter fw;
 	int op = OpenCom();
 	//long _uid = -1;
 	if (op != 0)
-		//if(0!=0)	//市立医院开发在调用opencom时总是出错，所以先暂时屏蔽此判断
 	{
 		return -1;
 	}
@@ -3544,7 +3537,6 @@ long WINAPI XDT_BaseInfo_Json(char* _json, char* _name, long *UID)
 			if (query_st != 0)
 			{
 				CloseCom();
-
 				return -2;
 			}
 			else
@@ -3554,12 +3546,9 @@ long WINAPI XDT_BaseInfo_Json(char* _json, char* _name, long *UID)
 				CUSTOMERINFO custinfo;
 				//读卡
 				int getinfo_st = CapGetNBCardInfo(&custinfo);
-				WriteInFile(RIZHI, "============\n");
-				WriteInFile(RIZHI, "已读卡\n");
 				if (getinfo_st != 0)
 				{
 					CloseCom();
-
 					return -3;
 				}
 				else
@@ -3577,7 +3566,6 @@ long WINAPI XDT_BaseInfo_Json(char* _json, char* _name, long *UID)
 					//root["Name"] = custinfo.Name;
 					root["ValidDate"] = custinfo.ValidDate;
 					CloseCom();
-					WriteInFile(RIZHI, "设备已关闭\n");
 					//操作居民健康卡接口
 					Sleep(T);
 					HANDLE hdev = opendevice(0);
@@ -3601,7 +3589,6 @@ long WINAPI XDT_BaseInfo_Json(char* _json, char* _name, long *UID)
 						}
 						else
 						{
-							WriteInFile(RIZHI, "居民健康卡复位成功\n");
 							char _sfzh[18 + 1] = { 0 };
 							char _xm[30 + 1] = { 0 };
 							char _xb[2 + 1] = { 0 };
@@ -3610,7 +3597,6 @@ long WINAPI XDT_BaseInfo_Json(char* _json, char* _name, long *UID)
 							Sleep(T);
 
 							iR_DDF1EF06Info(hdev, _xm, _xb, _mz, _csrq, _sfzh);
-							WriteInFile(RIZHI, "DF1EF06扇区已读\n");
 							int len = strlen(_sfzh);
 							if (len == 18)
 							{
@@ -3627,7 +3613,6 @@ long WINAPI XDT_BaseInfo_Json(char* _json, char* _name, long *UID)
 								int age = stoi(ts) - stoi(str_csrq);
 								root["Sex"] = sex;
 								root["Age"] = age;
-								WriteInFile(RIZHI, "完成性别及年龄处理\n");
 							}
 
 						}
@@ -3639,9 +3624,6 @@ long WINAPI XDT_BaseInfo_Json(char* _json, char* _name, long *UID)
 		}
 	}
 	strcpy(_json, fw.write(root).data());
-	WriteInFile(RIZHI, "传值给出参完成\n");
-
-
 	//处理乱码
 	int _wcsLen = ::MultiByteToWideChar(CP_UTF8, NULL, _json, strlen(_json), NULL, 0);
 	//分配空间要给'\0'留个空间，MultiByteToWideChar不会给'\0'空间
@@ -3653,7 +3635,6 @@ long WINAPI XDT_BaseInfo_Json(char* _json, char* _name, long *UID)
 	_bstr_t _b(_wszString);
 	char *_rev_temp = _b;
 	strcpy(_json, _b);
-	WriteInFile(RIZHI, "乱码处理完成\n");
 	return 0;
 }
 //读取扫码枪socketIP地址
@@ -3692,9 +3673,9 @@ long WINAPI GetComInputInfo(LPSTR info)
 	short sPort = 0;
 
 	short serial_port = GetSERIALPORT();
+	//当配置文件SERIALPORT为0或者没有此参数，自动识别串口号（仅限端口号小于10）
 	if ((serial_port == 0) || (serial_port == -1))
 	{
-		//自动识别串口号
 		for (int i = 1; i < 10; i++)
 		{
 			bool isOpen = cs.Open(i);
