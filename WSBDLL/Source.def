@@ -1,6 +1,6 @@
 LIBRARY WSBDLL
 EXPORTS 
-CapSetNBCardInfo_temp @1
+GetBankCardNo @1
 CapGetNBCardInfo @2
 OpenCom @3
 CapNBQueryCard @4
@@ -69,3 +69,4 @@ XDT_BaseInfo_Json @66
 GetComInputInfo @67
 test1 @68
 GetComInputInfo_Temp @69
+MisRund @70
