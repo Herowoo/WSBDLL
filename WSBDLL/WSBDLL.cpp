@@ -31,7 +31,7 @@
 #include "CryptoPP\include\hex.h";
 #include "CryptoPP\include\filters.h";
 #include "CryptoPP\include\modes.h";
-#pragma comment(lib, "cryptlib.lib")
+//#pragma comment(lib, "cryptlib.lib")
 //#pragma comment(lib,"JsonLib.lib")
 using namespace std;
 using namespace CryptoPP;
@@ -63,7 +63,6 @@ int COM_OPEN = 0;
 //寻卡循环开关
 bool SWITCH_QCARD = true;
 HMODULE hdllInst = LoadLibraryA("KeeperClient.dll");
-
 /*
 	工行MIS接口对接
 */
@@ -2001,16 +2000,26 @@ long GetCusInfoByUnion(char* outMsg, int* type)
 		searchtype = "searchIdCard";
 		*type = 2;
 	}
-	if (strlen(ALLQRCODE) != 0)
+	else
 	{
-		W_ReadCardLog("读二维码方式");
 
-		string content_qrcode(ALLQRCODE);
-		ISGETINFO = true;
-		content = content_qrcode;
-		//清除全局变量IDCARD
-		memset(ALLQRCODE, 0x00, 100);
-		searchtype = "search";
+		int read_qrcode = GetComInputInfo(_info);
+		if (read_qrcode == 0)//扫码成功
+		{
+			W_ReadCardLog("读二维码方式");
+			string content_qrcode(_info);
+			ISGETINFO = true;
+			content = content_qrcode;
+			//清除全局变量IDCARD
+			memset(ALLQRCODE, 0x00, 100);
+			searchtype = "search";
+			*type = 1;
+		}
+		else
+		{
+			W_ReadCardLog("扫码失败");
+			ISGETINFO = false;
+		}
 	}
 	if (ISGETINFO)
 	{
@@ -2102,51 +2111,32 @@ long _stdcall  CapGetNBCardInfo(CUSTOMERINFO *info)
 long _stdcall CapNBQueryCard(long *UID)
 {
 	W_ReadCardLog("CapNBQueryCard==================START");
-
 	clock_t end = clock();
 	int sec = (int)(end - N) / CLOCKS_PER_SEC;
-
 	int TOUT = atoi(GetValueInIni("MIS", "TIMEOUT", iniFileName));
 	//如果上次调用本接口与此次调用接口间隔时间大于$秒
-		if ((sec>TOUT) && (TOUT>0))
-		{
-			char shijian[24];
-			time_t t = time(0);
-			strftime(shijian, sizeof(shijian), "%d%H%M%S", localtime(&t));
-			long testuid = 0;
-			testuid = atol(shijian);
-			//调用真正读卡函数
-			char _info[200];
-			int ret = -1;
-			ret = GetBankCardNo(_info);
-			if (ret != 0)
-			{
-				ret = GetComInputInfo(_info);
-				if (ret == 0)
-				{
-					//扫码成功
-					*UID = testuid;
-					//拷贝二维码值到ALLQRCODE中
-					memset(ALLQRCODE, 0x00, 100);
-					strcpy(ALLQRCODE, _info);
-				}
-			}
-			else
-			{
-				//读卡成功
-				char _uid[9];
-				strncpy(_uid, _info + 9, 9);
-				string str(_uid);
-				str.substr(str.find_last_of("0") + 1);
-				*UID = atol(str.c_str());
-			}
-			//全局计时器刷新为本次调用接口时间
-			N = end;
-			//全局随机书刷新为此次uid
-			R = *UID;
-			//OpFile();
-		}
-		return 0;
+	if ((sec > TOUT) && (TOUT > 0))
+	{
+		char shijian[24];
+		time_t t = time(0);
+		strftime(shijian, sizeof(shijian), "%d%H%M%S", localtime(&t));
+		long testuid = 0;
+		testuid = atol(shijian);
+		*UID = testuid;
+		//全局计时器刷新为本次调用接口时间
+		N = end;
+		//全局随机数刷新为此次uid
+		R = *UID;
+	}
+	else
+	{
+		//返回上次UID
+		*UID = R;
+	}
+	char _log[100] = { 0 };
+	sprintf(_log, "INFO 寻卡返回UID：%d", *UID);
+	W_ReadCardLog(_log);
+	return 0;
 }
 
 //扣款（加次/日限额功能）
@@ -2375,23 +2365,11 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 	W_ReadCardLog("codeline2");*/
 
 	W_ReadCardLog("CapSetNBCardInfo_Str=================START");
-	//WinExec("taskkill /f /im spkdk.exe", SW_HIDE);
-	//W_ReadCardLog("自动寻卡服务已停止");
 	//先确认支付方式
 	LPSTR _mistradeno = GetValueInIni("MIS", "MisTraceNo", iniFileName);
 	char _info[100] = { 0 };
 	int _cardtype = 0;	//1为扫码，2为实体卡
 	int ret = GetBCNorIDC(_mistradeno, _info, &_cardtype);
-	int i = 0;
-	while ((ret==-3)&&(i<12))//打开串口失败，排除配置文件端口设置错误后，是由于多个程序同时调用同一个或同类接口函数导致
-	{
-		i++;
-		Sleep(500);
-		ret = GetBCNorIDC(_mistradeno, _info, &_cardtype);
-	}
-	char log2[1024] = { 0 };
-	sprintf(log2, "经过%d次-3错误，最终ret值为：%d", i, ret);
-	W_ReadCardLog(log2);
 	char _testlog[2000] = { 0 };
 	sprintf(_testlog, "info:%s,cardtype:%d", _info, _cardtype);
 	W_ReadCardLog(_testlog);
