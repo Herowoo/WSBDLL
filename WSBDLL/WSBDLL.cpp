@@ -2000,26 +2000,17 @@ long GetCusInfoByUnion(char* outMsg, int* type)
 		searchtype = "searchIdCard";
 		*type = 2;
 	}
-	else
+	if (strlen(ALLQRCODE) != 0)
 	{
+		W_ReadCardLog("读二维码方式");
 
-		int read_qrcode = GetComInputInfo(_info);
-		if (read_qrcode == 0)//扫码成功
-		{
-			W_ReadCardLog("读二维码方式");
-			string content_qrcode(_info);
-			ISGETINFO = true;
-			content = content_qrcode;
-			//清除全局变量IDCARD
-			memset(ALLQRCODE, 0x00, 100);
-			searchtype = "search";
-			*type = 1;
-		}
-		else
-		{
-			W_ReadCardLog("扫码失败");
-			ISGETINFO = false;
-		}
+		string content_qrcode(ALLQRCODE);
+		ISGETINFO = true;
+		content = content_qrcode;
+		//清除全局变量IDCARD
+		memset(ALLQRCODE, 0x00, 100);
+		searchtype = "search";
+
 	}
 	if (ISGETINFO)
 	{
@@ -2117,19 +2108,50 @@ long _stdcall CapNBQueryCard(long *UID)
 	//如果上次调用本接口与此次调用接口间隔时间大于$秒
 	if ((sec > TOUT) && (TOUT > 0))
 	{
+		W_ReadCardLog("进入第一个if语句");
 		char shijian[24];
 		time_t t = time(0);
 		strftime(shijian, sizeof(shijian), "%d%H%M%S", localtime(&t));
 		long testuid = 0;
 		testuid = atol(shijian);
-		*UID = testuid;
-		//全局计时器刷新为本次调用接口时间
-		N = end;
-		//全局随机数刷新为此次uid
+
+		char _info[200] = { 0 };
+		int ret = -1;
+		ret = GetBankCardNo(_info);
+		W_ReadCardLog("读居民健康卡信息结束");
+		if (ret!=0)
+		{
+			W_ReadCardLog("进入第二个if语句");
+			ret = GetComInputInfo(_info);
+			W_ReadCardLog("读二维码结束");
+			if (ret==0)
+			{
+				W_ReadCardLog("1R2S3T");
+				*UID = testuid;
+				memset(ALLQRCODE, 0x00, 100);
+				strcpy(ALLQRCODE, _info);
+			}
+			else
+			{
+				W_ReadCardLog("1R2S3F");
+
+			}
+		}
+		else
+		{
+			W_ReadCardLog("1R2T");
+			char _uid[9];
+			strncpy(_uid, _info + 9, 9);
+			string str(_uid);
+			str.substr(str.find_last_of("0") + 1);
+			*UID = atol(str.c_str());
+		}
+		N = clock();
 		R = *UID;
 	}
 	else
 	{
+		W_ReadCardLog("1F");
 		//返回上次UID
 		*UID = R;
 	}
