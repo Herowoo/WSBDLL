@@ -44,6 +44,7 @@ LPCSTR CONDLL = "Cap_RW.dll";
 LPCSTR iniFileName = "./ChgCity.ini";
 LPSTR RIZHI = "debug.log";
 LPSTR PREUPLOADFILE = "C:/PreUpload.dat";
+LPSTR TOTALFILE = "Total_ZXYY_PAR.txt";
 //全局身份证号码
 char ALLIDCARD[20] = { 0 };
 //全局电子健康卡二维码信息
@@ -54,6 +55,10 @@ Json::Value js_vl;
 Json::Value js_dep;
 //全局客户姓名变量
 char CUSNAME[128] = { 0 };
+//全局卡号变量
+char KH[20] = { 0 };
+//全局读二维码次数
+int T_READQR = 0;
 //计时器初始时间
 clock_t N = 0;
 //
@@ -2069,6 +2074,29 @@ long GetCusInfoByUnion(char* outMsg, int* type)
 		return -3;
 	}
 }
+//写入和读取固定文件内容
+void SaveTotalArg(int inputMsg)
+{
+	
+	std::ofstream fout(TOTALFILE, std::ios::trunc);
+	fout << inputMsg << endl;
+	fout.close();
+}
+LPSTR GetTotalArg()
+{
+	char buffer[1024] = { 0 };
+	std::ifstream fin;
+	fin.open(TOTALFILE, std::ios::in);
+	if (!fin.eof())
+	{
+		fin.getline(buffer, 1024, '\n');
+		return buffer;
+	}
+	else
+	{
+		return NULL;
+	}
+}
 /*========================================实现城市通接口=======================================================*/
 //打开连接
 long _stdcall OpenCom()
@@ -2082,7 +2110,8 @@ long _stdcall OpenCom()
 void _stdcall CloseCom()
 {
 	W_ReadCardLog("EVENT CLOSECOM===============================START");
-	SWITCH_QCARD = false;
+	N = clock();
+	//SWITCH_QCARD = false;
 }
 //读取用户信息
 long _stdcall  CapGetNBCardInfo(CUSTOMERINFO *info)
@@ -2102,11 +2131,22 @@ long _stdcall  CapGetNBCardInfo(CUSTOMERINFO *info)
 long _stdcall CapNBQueryCard(long *UID)
 {
 	W_ReadCardLog("CapNBQueryCard==================START");
+	int T_PAR = atol(GetTotalArg());
+	char log3[100];
+	sprintf(log3, "当前全局扫码次数为：%d", T_PAR);
+	W_ReadCardLog(log3);
+
+	if (T_PAR ==1)
+	{
+		SaveTotalArg(0);
+		*UID = R;
+		return 0;
+	}
 	clock_t end = clock();
 	int sec = (int)(end - N) / CLOCKS_PER_SEC;
 	int TOUT = atoi(GetValueInIni("MIS", "TIMEOUT", iniFileName));
 	//如果上次调用本接口与此次调用接口间隔时间大于$秒
-	if ((sec > TOUT) && (TOUT > 0))
+	if ((sec > TOUT) && (TOUT >= 0))
 	{
 		W_ReadCardLog("进入第一个if语句");
 		char shijian[24];
@@ -2119,25 +2159,7 @@ long _stdcall CapNBQueryCard(long *UID)
 		int ret = -1;
 		ret = GetBankCardNo(_info);
 		W_ReadCardLog("读居民健康卡信息结束");
-		if (ret!=0)
-		{
-			W_ReadCardLog("进入第二个if语句");
-			ret = GetComInputInfo(_info);
-			W_ReadCardLog("读二维码结束");
-			if (ret==0)
-			{
-				W_ReadCardLog("1R2S3T");
-				*UID = testuid;
-				memset(ALLQRCODE, 0x00, 100);
-				strcpy(ALLQRCODE, _info);
-			}
-			else
-			{
-				W_ReadCardLog("1R2S3F");
-
-			}
-		}
-		else
+		if (ret==0)	//读卡成功
 		{
 			W_ReadCardLog("1R2T");
 			char _uid[9];
@@ -2145,9 +2167,44 @@ long _stdcall CapNBQueryCard(long *UID)
 			string str(_uid);
 			str.substr(str.find_last_of("0") + 1);
 			*UID = atol(str.c_str());
+			//将身份证号存入全局变量中
+			strcpy(KH, _info);
+			//判断上一次读二维码是否成功，如果成功则直接直接return 0，否则进行扫码
+			
 		}
-		N = clock();
-		R = *UID;
+		else
+		{
+			
+			//if (T_READQR == 1)
+			//{
+			//	W_ReadCardLog("判断全局扫码次数为1，本函数退出");
+			//	T_READQR = 0;//初始化扫码次数为0
+			//	return 0;
+			//}
+			//else
+			//{
+				W_ReadCardLog("进入第二个if语句");
+				ret = GetComInputInfo(_info);
+				W_ReadCardLog("读二维码结束");
+				if (ret == 0)
+				{
+					//读二维码成功
+					SaveTotalArg(1);
+					W_ReadCardLog("1R2S3T");
+					*UID = testuid;
+					memset(ALLQRCODE, 0x00, 100);
+					strcpy(ALLQRCODE, _info);
+				}
+				else
+				{
+					W_ReadCardLog("1R2S3F");
+
+				}
+			//}
+			
+		}
+		//N = clock();
+		R = *UID;	//更新全局UID为最新UID
 	}
 	else
 	{
@@ -2158,6 +2215,7 @@ long _stdcall CapNBQueryCard(long *UID)
 	char _log[100] = { 0 };
 	sprintf(_log, "INFO 寻卡返回UID：%d", *UID);
 	W_ReadCardLog(_log);
+	
 	return 0;
 }
 
@@ -2392,6 +2450,16 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 	char _info[100] = { 0 };
 	int _cardtype = 0;	//1为扫码，2为实体卡
 	int ret = GetBCNorIDC(_mistradeno, _info, &_cardtype);
+	int i = 0; //循环计数
+	while ((ret==-3)&&(i<12))
+	{
+		i++;
+		Sleep(500);
+		ret = GetBCNorIDC(_mistradeno, _info, &_cardtype);
+	}
+	char xh_log[100] = { 0 };
+	sprintf(xh_log, "经过%d次循环，最终ret值为：%d", i, ret);
+	W_ReadCardLog(xh_log);
 	char _testlog[2000] = { 0 };
 	sprintf(_testlog, "info:%s,cardtype:%d", _info, _cardtype);
 	W_ReadCardLog(_testlog);
@@ -2806,8 +2874,10 @@ int _stdcall iR_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, c
 	return 0;*/
 	//以上临时测试
 	int type = 0;
-	char outJson[1024] = { 0 };
+	char outJson[10240] = { 0 };
 	long ret = GetCusInfoByUnion(outJson, &type);
+	string strlog = "GetCusInfoByUnion完成,返回值：" + ret;
+	W_ReadCardLog(strlog.c_str());
 	if (ret == 0)
 	{
 		//解析json
@@ -2845,6 +2915,7 @@ int _stdcall iR_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, c
 		}
 		catch (const std::exception&ex)
 		{
+			W_ReadCardLog("解密程序异常退出");
 			return -13;
 		}
 	}
