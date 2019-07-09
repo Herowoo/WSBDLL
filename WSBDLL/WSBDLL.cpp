@@ -1331,14 +1331,14 @@ long SendPostRequest(const char *ip, short port, char *bufSend, char *recv_buf)
 	W_ReadCardLog("before connect");
 	if (connect(sHost, (struct sockaddr*)&servAddr, sizeof(servAddr)) == -1)
 	{
-		W_ReadCardLog("connect failed");
+		W_ReadCardLog("connect success");
 		tm.tv_sec = 5;	//超时时间，单位秒
 		tm.tv_usec = 0;
 		FD_ZERO(&set);
 		FD_SET(sHost, &set);
 		if (select(sHost + 1, NULL, &set, NULL, &tm) > 0)
 		{
-			W_ReadCardLog("select true");
+			W_ReadCardLog("select success");
 			getsockopt(sHost, SOL_SOCKET, SO_ERROR, (char *)&error, &len);
 			if (error == 0)
 			{
@@ -1351,13 +1351,13 @@ long SendPostRequest(const char *ip, short port, char *bufSend, char *recv_buf)
 		}
 		else
 		{
-			W_ReadCardLog("select false");
+			W_ReadCardLog("select failed");
 			ret = false;
 		}
 	}
 	else
 	{
-		W_ReadCardLog("connect success");
+		W_ReadCardLog("connect failed");
 
 		ret = true;
 	}
@@ -1637,7 +1637,10 @@ long UploadMisBySocket(string _json)
 	char *req_ip = GetValueInIni("MIS", "BCNIP", iniFileName);
 	short _port = GetPrivateProfileIntA("MIS", "BCNPORT", 80, iniFileName);
 	char buf_Send[1024] = { 0 };
-	strcpy(buf_Send, sendJson.toStyledString().c_str());
+	//加密发送内容
+	initKV();
+	string str_encry = encrypt(sendJson.toStyledString());
+	strcpy(buf_Send, str_encry.c_str());
 	char req_resv[1024] = { 0 };
 	//提交POST
 	long ret_sendpost = SendPostRequest(req_ip, _port, buf_Send, req_resv);
@@ -1650,6 +1653,7 @@ long UploadMisBySocket(string _json)
 		TransCharacter(req_resv, _rev_temp);
 		//截取json
 		string str_rev(_rev_temp);
+		str_rev = "提交成功，服务器返回内容为： " + str_rev;
 		W_ReadCardLog(str_rev.c_str());
 		string json_rel;
 		int json_bg = str_rev.find_first_of("{", 0);
