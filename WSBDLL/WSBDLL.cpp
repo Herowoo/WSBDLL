@@ -24,17 +24,18 @@
 //#include "aes.h";
 //#include "aes_encryptor.h";
 //使用Cryptoo++库
-#include "CryptoPP\include\aes.h";
-#include "CryptoPP\include\rijndael.h";
-#include "CryptoPP\include\randpool.h";
-#include "CryptoPP\include\rsa.h";
-#include "CryptoPP\include\hex.h";
-#include "CryptoPP\include\filters.h";
-#include "CryptoPP\include\modes.h";
+//#include "CryptoPP\include\aes.h";
+//#include "CryptoPP\include\rijndael.h";
+//#include "CryptoPP\include\randpool.h";
+//#include "CryptoPP\include\rsa.h";
+//#include "CryptoPP\include\hex.h";
+//#include "CryptoPP\include\filters.h";
+//#include "CryptoPP\include\modes.h";
+//using namespace CryptoPP;
 //#pragma comment(lib, "cryptlib.lib")
 //#pragma comment(lib,"JsonLib.lib")
 using namespace std;
-using namespace CryptoPP;
+
 
 //定义黑名单状态,初始值为0，验证后黑名单为-1，非黑名单为1
 int is_black = 0;
@@ -51,8 +52,6 @@ char ALLIDCARD[20] = { 0 };
 char ALLQRCODE[100] = { 0 };
 //用户信息
 Json::Value js_vl;
-//解密后的用户信息
-Json::Value js_dep;
 //全局客户姓名变量
 char CUSNAME[128] = { 0 };
 //全局卡号变量
@@ -67,6 +66,8 @@ long R = 1;
 int COM_OPEN = 0;
 //寻卡循环开关
 bool SWITCH_QCARD = true;
+//寻卡是否成功
+bool ISQUERYEDCARD = false;
 HMODULE hdllInst = LoadLibraryA("KeeperClient.dll");
 /*
 	工行MIS接口对接
@@ -919,75 +920,6 @@ void WriteInFile(char* filename, std::string str_to_write)
 	fout << str_to_write.c_str();
 	fout.close();
 }
-BYTE s_key[CryptoPP::AES::DEFAULT_KEYLENGTH], s_iv[CryptoPP::AES::BLOCKSIZE];
-//初始化key和IV
-void initKV()
-{
-	/*memset(s_key, 0x00, CryptoPP::AES::DEFAULT_KEYLENGTH);
-	memset(s_iv, 0x00, CryptoPP::AES::BLOCKSIZE);*/
-	char tempk[] = "xudutonghis20196";
-	char tempiv[] = "1234560405060708";
-
-	/*char tempk[] = "1234567890123456";
-	char tempiv[] = "0000000000000000";*/
-	for (int i = 0; i < CryptoPP::AES::DEFAULT_KEYLENGTH; i++)
-	{
-		s_key[i] = tempk[i];
-	}
-	for (int j = 0; j < CryptoPP::AES::BLOCKSIZE; j++)
-	{
-		s_iv[j] = tempiv[j];
-	}
-}
-//AES CBC模式加密
-string encrypt(const string& plainText)
-{
-	string cipherText;
-	CryptoPP::AES::Encryption aesEncryption(s_key, CryptoPP::AES::DEFAULT_KEYLENGTH);
-	CryptoPP::CBC_Mode_ExternalCipher::Encryption cbcEncryption(aesEncryption, s_iv);
-	CryptoPP::StreamTransformationFilter stfEncryptor(cbcEncryption, new CryptoPP::StringSink(cipherText));
-	stfEncryptor.Put(reinterpret_cast<const unsigned char*>(plainText.c_str()), plainText.length());
-	stfEncryptor.MessageEnd();
-
-	string cipherTextHex;
-	for (int i = 0; i < cipherText.size(); i++)
-	{
-		char ch[3] = { 0 };
-		sprintf(ch, "%02x", static_cast<BYTE>(cipherText[i]));
-		cipherTextHex += ch;
-	}
-	return cipherTextHex;
-}
-//AES CBC模式解密
-string decrypt(string cipherTextHex)
-{
-	string cipherText;
-	string decryptedText;
-
-	int i = 0;
-	while (true)
-	{
-		char c;
-		int x;
-		stringstream ss;
-		ss << hex << cipherTextHex.substr(i, 2).c_str();
-		ss >> x;
-		c = (char)x;
-		cipherText += c;
-		if (i >= cipherTextHex.length() - 2)break;
-		i += 2;
-	}
-
-	//  
-	CryptoPP::AES::Decryption aesDecryption(s_key, CryptoPP::AES::DEFAULT_KEYLENGTH);
-	CryptoPP::CBC_Mode_ExternalCipher::Decryption cbcDecryption(aesDecryption, s_iv);
-	CryptoPP::StreamTransformationFilter stfDecryptor(cbcDecryption, new CryptoPP::StringSink(decryptedText));
-	stfDecryptor.Put(reinterpret_cast<const unsigned char*>(cipherText.c_str()), cipherText.size());
-
-	stfDecryptor.MessageEnd();
-
-	return decryptedText;
-}
 /*
 此方法用来获取卡片的黑名单状态
 入口参数：
@@ -1198,7 +1130,7 @@ long _stdcall GetBlack_limit(const char *ip, short port, long uid, char *recv_bu
 //		return -4;		//发送失败
 //	}
 //	char* recvbuf = recv_buf;
-//	recv(sHost, recvbuf, 1024, 0);
+//	recv(sHost, recvbuf, 20480, 0);
 //	//W_ReadCardLog(recvbuf);
 //	closesocket(sHost); //关闭套接字  
 //	WSACleanup();       //释放套接字资源  
@@ -1226,18 +1158,18 @@ long _stdcall GetBlack_limit(const char *ip, short port, long uid, char *recv_bu
 //	sendvalue["content"]["merCatCode"] = GetValueInIni("MIS", "MERCATCODE", iniFileName);
 //	sendvalue["content"]["merName"] = GetValueInIni("MIS", "MERNAME", iniFileName);
 //	string sendJson = sendvalue.toStyledString();
-//	char _send_buff[1024] = { 0 };
-//	memcpy(_send_buff, sendJson.c_str(), 1024);
+//	char _send_buff[20480] = { 0 };
+//	memcpy(_send_buff, sendJson.c_str(), 20480);
 //	W_ReadCardLog(_send_buff);
 //	//提交接口
 //	LPSTR req_ip;
 //	req_ip = GetValueInIni("MIS", "BCNIP", iniFileName);
 //	short _port = GetPrivateProfileIntA("MIS", "BCNPORT", 80, iniFileName);
-//	char req_resv[1024] = { 0 };
+//	char req_resv[20480] = { 0 };
 //	long ret_sendpost = SendPostRequest(req_ip, _port, _send_buff, req_resv);
 //	if (0 == ret_sendpost)
 //	{
-//		char _rev_temp[1024] = { 0 };
+//		char _rev_temp[20480] = { 0 };
 //		TransCharacter(req_resv, _rev_temp);
 //		//截取json
 //		string str_rev(_rev_temp);
@@ -1382,7 +1314,7 @@ long SendPostRequest(const char *ip, short port, char *bufSend, char *recv_buf)
 			return -4;		//发送失败
 		}
 		char* recvbuf = recv_buf;
-		recv(sHost, recvbuf, 1024, 0);
+		recv(sHost, recvbuf, 204800, 0);
 		//W_ReadCardLog(recvbuf);
 		closesocket(sHost); //关闭套接字  
 		WSACleanup();       //释放套接字资源  
@@ -1544,7 +1476,7 @@ long UploadMisPost(string _json, char* host, char* url)
 		"Content-Type:application/json\r\n\r\n"
 		"%s", url, host, _json.length(), _json.c_str()
 	);
-	char req_resv[1024];
+	char req_resv[20480];
 	char req_ip[24];
 	GetIpByDomainName(host, req_ip);
 	//2018-09-07 12:19	此处修改为在提交post之前将信息写入提交日志，服务器返回日志在收到后继续写入
@@ -1558,7 +1490,7 @@ long UploadMisPost(string _json, char* host, char* url)
 	W_ReadCardLog(sendlog);
 	if (0 == ret_sendpost)
 	{
-		char _rev_temp[1024] = { 0 };
+		char _rev_temp[10240] = { 0 };
 		TransCharacter(req_resv, _rev_temp);
 		//截取json
 		string str_rev(_rev_temp);
@@ -1631,25 +1563,22 @@ long UploadMisBySocket(string _json)
 	sendJson["content"]["transTime"] = root["TransTime"];
 	sendJson["content"]["transType"] = root["TransType"];
 	sendJson["content"]["yLMerchantId"] = root["YLMerchantId"];
-	char jsonlog[1024];
+	char jsonlog[20480];
 	sprintf(jsonlog, "传入内容：%s,rootjosn对象内容:%s", _json.c_str(), root.toStyledString().c_str());
 	W_ReadCardLog(jsonlog);
 	char *req_ip = GetValueInIni("MIS", "BCNIP", iniFileName);
 	short _port = GetPrivateProfileIntA("MIS", "BCNPORT", 80, iniFileName);
-	char buf_Send[1024] = { 0 };
-	//加密发送内容
-	initKV();
-	string str_encry = encrypt(sendJson.toStyledString());
-	strcpy(buf_Send, str_encry.c_str());
-	char req_resv[1024] = { 0 };
+	char buf_Send[20480] = { 0 };
+	strcpy(buf_Send, sendJson.toStyledString().c_str());
+	char req_resv[20480] = { 0 };
 	//提交POST
 	long ret_sendpost = SendPostRequest(req_ip, _port, buf_Send, req_resv);
-	char sendlog[1024] = { 0 };
+	char sendlog[20480] = { 0 };
 	sprintf(sendlog, "EVENT 调用函数SendPostRequest结束,POST请求提交完毕,返回%ld，发送内容：%s", ret_sendpost, buf_Send);
 	W_ReadCardLog(sendlog);
 	if (0 == ret_sendpost)
 	{
-		char _rev_temp[1024] = { 0 };
+		char _rev_temp[20480] = { 0 };
 		TransCharacter(req_resv, _rev_temp);
 		//截取json
 		string str_rev(_rev_temp);
@@ -1658,6 +1587,9 @@ long UploadMisBySocket(string _json)
 		string json_rel;
 		int json_bg = str_rev.find_first_of("{", 0);
 		int json_end = str_rev.find_last_of("}");
+		char loga[100];
+		sprintf(loga, "json_bg=%d,json_end=%d", json_bg, json_end);
+		W_ReadCardLog(loga);
 		if (json_end > json_bg)
 		{
 			json_rel = str_rev.substr(json_bg, json_end - json_bg + 1);
@@ -1686,7 +1618,7 @@ long UploadMisBySocket(string _json)
 		}
 		else
 		{
-			W_ReadCardLog("ERROR 上传接口返回信息格                                                                                                               式有误");
+			W_ReadCardLog("ERROR 上传接口返回信息格式有误");
 			return -12;
 		}
 	}
@@ -1796,7 +1728,7 @@ long UploadDetailByPost(char* http_req, char* host, char* url)
 		"%s", url, host, req_to_str.length(), _appid, _apptypeid, ts, hash.c_str(), ip, req_to_str.c_str()
 	);
 	W_ReadCardLog("INFO 待上传数据json处理完毕");
-	char req_resv[1024];
+	char req_resv[20480];
 	char req_ip[24];
 	GetIpByDomainName(host, req_ip);
 	//2018-09-07 12:19	此处修改为在提交post之前将信息写入提交日志，服务器返回日志在收到后继续写入
@@ -1820,7 +1752,7 @@ long UploadDetailByPost(char* http_req, char* host, char* url)
 		//_wszString[_wcsLen] = '\0';
 		//_bstr_t _b(_wszString);
 		//char *_rev_temp = _b;
-		char _rev_temp[1024] = { 0 };
+		char _rev_temp[20480] = { 0 };
 		TransCharacter(req_resv, _rev_temp);
 		//截取json
 		string str_rev(_rev_temp);
@@ -1884,12 +1816,12 @@ void OpFile()
 	//sprintf(_log, "EVENT 从配置文件读取参数,HOST:%s,URL:%s", HOST, URL);
 	//W_ReadCardLog(_log);
 	//读预上传文本文件
-	char buffer[1024] = { 0 };
+	char buffer[20480] = { 0 };
 	std::ifstream fin;
 	fin.open(PREUPLOADFILE, std::ios::in);
 	if (!fin.eof())
 	{
-		fin.getline(buffer, 1024, '\n');
+		fin.getline(buffer, 20480, '\n');
 		int size = strlen(buffer);
 		if (size > 2)
 		{
@@ -1915,7 +1847,7 @@ void OpFile()
 	//{
 	//	if (!fin.eof())
 	//	{
-	//		fin.getline(buffer, 1024, '\n');
+	//		fin.getline(buffer, 20480, '\n');
 	//		int size = strlen(buffer);
 	//		if (size > 2)
 	//		{
@@ -1953,10 +1885,10 @@ void OpFile()
 	ofstream comp_f(uped_file, ios::out | ios::app);
 	ifstream f_temp_comp;
 	f_temp_comp.open("temp_comp.txt", std::ios::in);
-	char buff_comp[1024] = { 0 };
+	char buff_comp[20480] = { 0 };
 	while (!f_temp_comp.eof())
 	{
-		f_temp_comp.getline(buff_comp, 1024, '\n');
+		f_temp_comp.getline(buff_comp, 20480, '\n');
 		if (strlen(buff_comp) > 2)
 		{
 			comp_f << buff_comp << endl;
@@ -1969,10 +1901,10 @@ void OpFile()
 	f_prefile.open(PREUPLOADFILE, ios::out | ios::trunc);
 	ifstream f_temp_uload;
 	f_temp_uload.open("temp_unload.txt", ios::in);
-	char buff_uload[1024] = { 0 };
+	char buff_uload[20480] = { 0 };
 	while (!f_temp_uload.eof())
 	{
-		f_temp_uload.getline(buff_uload, 1024, '\n');
+		f_temp_uload.getline(buff_uload, 20480, '\n');
 		if (strlen(buff_uload) > 2)
 		{
 			f_prefile << buff_uload << endl;
@@ -1987,7 +1919,7 @@ void OpFile()
 //通过读卡或二维码获取个人信息
 long GetCusInfoByUnion(char* outMsg, int* type)
 {
-	W_ReadCardLog("iR_DDF1EF05Info==================START");
+	
 	js_vl.clear();
 	memset(ALLIDCARD, 0x00, 20);
 	char _info[200] = { 0 };
@@ -2024,7 +1956,7 @@ long GetCusInfoByUnion(char* outMsg, int* type)
 	if (ISGETINFO)
 	{
 
-		char req_resv[1024];
+		char req_resv[20480];
 		LPSTR req_ip;
 		req_ip = GetValueInIni("MIS", "BCNIP", iniFileName);
 		short _port = GetPrivateProfileIntA("MIS", "BCNPORT", 80, iniFileName);
@@ -2038,18 +1970,14 @@ long GetCusInfoByUnion(char* outMsg, int* type)
 		sendvalue["serialNumber"] = serialNo;
 		sendvalue["method"] = searchtype;
 		string sendJson = sendvalue.toStyledString();
-		char _send_buff[1024] = { 0 };
-		//开始加密
-		initKV();
-		string str_sendbuff = encrypt(sendJson);
-		memcpy(_send_buff, str_sendbuff.c_str(), 1024);
-		string log1 = "提交到前置机信息加密后字符串为：" + str_sendbuff;
-		W_ReadCardLog(log1.c_str());
+		char _send_buff[20480] = { 0 };
+		
+		memcpy(_send_buff, sendJson.c_str(), 20480);
 		//发送请求
 		long ret_sendpost = SendPostRequest(req_ip, _port, _send_buff, req_resv);
 		if (0 == ret_sendpost)
 		{
-			char _rev_temp[1024] = { 0 };
+			char _rev_temp[20480] = { 0 };
 			TransCharacter(req_resv, _rev_temp);
 			//截取json
 			string str_rev(_rev_temp);
@@ -2088,12 +2016,12 @@ void SaveTotalArg(int inputMsg)
 }
 LPSTR GetTotalArg()
 {
-	char buffer[1024] = { 0 };
+	char buffer[20480] = { 0 };
 	std::ifstream fin;
 	fin.open(TOTALFILE, std::ios::in);
 	if (!fin.eof())
 	{
-		fin.getline(buffer, 1024, '\n');
+		fin.getline(buffer, 20480, '\n');
 		return buffer;
 	}
 	else
@@ -2105,7 +2033,7 @@ LPSTR GetTotalArg()
 //打开连接
 long _stdcall OpenCom()
 {
-	W_ReadCardLog("EVENT OPENCOM===========================START");
+	W_ReadCardLog("EVENT OPENCOM===============================START");
 	SWITCH_QCARD = true;
 
 	return 0;
@@ -2120,7 +2048,7 @@ void _stdcall CloseCom()
 //读取用户信息
 long _stdcall  CapGetNBCardInfo(CUSTOMERINFO *info)
 {
-	W_ReadCardLog("CapGetNBCardInfo==================START");
+	W_ReadCardLog("EVENT CLOSECOM===============================START");
 	//CUSTOMERINFO custinfo;
 	//初始化余额，通过HIS扣费前校验
 	info->Ye = 1000 * 100;
@@ -2144,6 +2072,7 @@ long _stdcall CapNBQueryCard(long *UID)
 	{
 		SaveTotalArg(0);
 		*UID = R;
+		ISQUERYEDCARD = true;
 		return 0;
 	}
 	clock_t end = clock();
@@ -2165,6 +2094,7 @@ long _stdcall CapNBQueryCard(long *UID)
 		W_ReadCardLog("读居民健康卡信息结束");
 		if (ret==0)	//读卡成功
 		{
+			ISQUERYEDCARD = true;
 			W_ReadCardLog("1R2T");
 			char _uid[9];
 			strncpy(_uid, _info + 9, 9);
@@ -2178,20 +2108,13 @@ long _stdcall CapNBQueryCard(long *UID)
 		}
 		else
 		{
-			
-			//if (T_READQR == 1)
-			//{
-			//	W_ReadCardLog("判断全局扫码次数为1，本函数退出");
-			//	T_READQR = 0;//初始化扫码次数为0
-			//	return 0;
-			//}
-			//else
-			//{
 				W_ReadCardLog("进入第二个if语句");
 				ret = GetComInputInfo(_info);
 				W_ReadCardLog("读二维码结束");
 				if (ret == 0)
 				{
+					ISQUERYEDCARD = true;
+
 					//读二维码成功
 					SaveTotalArg(1);
 					W_ReadCardLog("1R2S3T");
@@ -2201,6 +2124,7 @@ long _stdcall CapNBQueryCard(long *UID)
 				}
 				else
 				{
+					ISQUERYEDCARD = false;
 					W_ReadCardLog("1R2S3F");
 
 				}
@@ -2214,12 +2138,12 @@ long _stdcall CapNBQueryCard(long *UID)
 	{
 		W_ReadCardLog("1F");
 		//返回上次UID
+		ISQUERYEDCARD = false;
 		*UID = R;
 	}
 	char _log[100] = { 0 };
 	sprintf(_log, "INFO 寻卡返回UID：%d", *UID);
 	W_ReadCardLog(_log);
-	
 	return 0;
 }
 
@@ -2280,18 +2204,18 @@ long WINAPI CapSetNBCardInfo_Str1(long objNo, long uid, long opFare, LPSTR jyDT,
 			sendvalue["content"]["merCatCode"] = GetValueInIni("MIS", "MERCATCODE", iniFileName);
 			sendvalue["content"]["merName"] = GetValueInIni("MIS", "MERNAME", iniFileName);
 			string sendJson = sendvalue.toStyledString();
-			char _send_buff[1024] = { 0 };
-			memcpy(_send_buff, sendJson.c_str(), 1024);
+			char _send_buff[20480] = { 0 };
+			memcpy(_send_buff, sendJson.c_str(), 20480);
 			W_ReadCardLog(_send_buff);
 			//提交接口
 			LPSTR req_ip;
 			req_ip = GetValueInIni("MIS", "BCNIP", iniFileName);
 			short _port = GetPrivateProfileIntA("MIS", "BCNPORT", 80, iniFileName);
-			char req_resv[1024] = { 0 };
+			char req_resv[20480] = { 0 };
 			long ret_sendpost = SendPostRequest(req_ip, _port, _send_buff, req_resv);
 			if (0 == ret_sendpost)
 			{
-				char _rev_temp[1024] = { 0 };
+				char _rev_temp[20480] = { 0 };
 				TransCharacter(req_resv, _rev_temp);
 				//截取json
 				string str_rev(_rev_temp);
@@ -2374,11 +2298,11 @@ long WINAPI CapSetNBCardInfo_Str1(long objNo, long uid, long opFare, LPSTR jyDT,
 				strcpy(psamID, subchar(st_out.TransType, 220, 15));//终端号
 				strcpy(tac, subchar(st_out.TransType, 204, 8));		//系统检索号
 				*psamJyNo = atol(subchar(st_out.TransType, 610, 6));//终端流水号
-				char _log[1024] = { 0 };
+				char _log[20480] = { 0 };
 				sprintf(_log, "psamID=%s,tac=%s,psamjyNo=%ld", psamID, tac, psamJyNo);
 				W_ReadCardLog("准备处理JSON");
 				string str_json = Stu2json(st_out, ALLIDCARD);
-				char _jsonlog[1024];
+				char _jsonlog[20480];
 				sprintf(_jsonlog, "返回json:%s", str_json.c_str());
 				W_ReadCardLog(_jsonlog);
 				//消费记录上传
@@ -2491,20 +2415,19 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 			sendvalue["content"]["merCatCode"] = GetValueInIni("MIS", "MERCATCODE", iniFileName);
 			sendvalue["content"]["merName"] = GetValueInIni("MIS", "MERNAME", iniFileName);
 			string sendJson = sendvalue.toStyledString();
-			char _send_buff[1024] = { 0 };
-			initKV();
-			string str_enp = encrypt(sendJson);
-			memcpy(_send_buff, str_enp.c_str(), 1024);
+			char _send_buff[20480] = { 0 };
+		
+			memcpy(_send_buff, sendJson.c_str(), 20480);
 			W_ReadCardLog(_send_buff);
 			//提交接口
 			LPSTR req_ip;
 			req_ip = GetValueInIni("MIS", "BCNIP", iniFileName);
 			short _port = GetPrivateProfileIntA("MIS", "BCNPORT", 80, iniFileName);
-			char req_resv[1024] = { 0 };
+			char req_resv[20480] = { 0 };
 			long ret_sendpost = SendPostRequest(req_ip, _port, _send_buff, req_resv);
 			if (0 == ret_sendpost)
 			{
-				char _rev_temp[1024] = { 0 };
+				char _rev_temp[20480] = { 0 };
 				TransCharacter(req_resv, _rev_temp);
 				//截取json
 				string str_rev(_rev_temp);
@@ -2528,15 +2451,13 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 							if (root["flag"].asString() == "1")
 							{
 								W_ReadCardLog("INFO 支付成功");
-								string str_dep = decrypt(root["content"]["data"].asString());
-								Json::Value json_dep;
-								reader.parse(str_dep, json_dep);
+								
 								//处理出参
 								*psamID = atoll(GetValueInIni("MIS", "TERMID", iniFileName));
 								char tac_temp[20] = { 0 };
 								_i64toa(ms.count(), tac_temp, 10);
 								strcpy(tac, tac_temp);
-								*psamJyNo = atol(json_dep["autoCode"].asString().c_str());
+								*psamJyNo = atol(root["content"]["data"]["autoCode"].asString().c_str());
 								return 0;
 							}
 							else
@@ -2609,10 +2530,10 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 					*psamID = atoll(subchar(st_out.TransType, 220, 15));//终端号
 					strcpy(tac, subchar(st_out.TransType, 204, 8));		//系统检索号
 					*psamJyNo = atol(subchar(st_out.TransType, 610, 6));//终端流水号
-					char _log[1024] = { 0 };
+					char _log[20480] = { 0 };
 					sprintf(_log, "psamID=%lld,tac=%s,psamjyNo=%ld", psamID, tac, psamJyNo);
 					str_json = Stu2json(st_out, ALLIDCARD);
-					char _jsonlog[1024];
+					char _jsonlog[20480];
 					sprintf(_jsonlog, "返回json:%s", str_json.c_str());
 					W_ReadCardLog(_jsonlog);
 					//消费记录上传
@@ -2716,18 +2637,18 @@ long _stdcall CapSetNBCardInfo(long objNo, long UID, long opFare, LPSTR jyDT, __
 			sendvalue["content"]["merCatCode"] = GetValueInIni("MIS", "MERCATCODE", iniFileName);
 			sendvalue["content"]["merName"] = GetValueInIni("MIS", "MERNAME", iniFileName);
 			string sendJson = sendvalue.toStyledString();
-			char _send_buff[1024] = { 0 };
-			memcpy(_send_buff, sendJson.c_str(), 1024);
+			char _send_buff[20480] = { 0 };
+			memcpy(_send_buff, sendJson.c_str(), 20480);
 			W_ReadCardLog(_send_buff);
 			//提交接口
 			LPSTR req_ip;
 			req_ip = GetValueInIni("MIS", "BCNIP", iniFileName);
 			short _port = GetPrivateProfileIntA("MIS", "BCNPORT", 80, iniFileName);
-			char req_resv[1024] = { 0 };
+			char req_resv[20480] = { 0 };
 			long ret_sendpost = SendPostRequest(req_ip, _port, _send_buff, req_resv);
 			if (0 == ret_sendpost)
 			{
-				char _rev_temp[1024] = { 0 };
+				char _rev_temp[20480] = { 0 };
 				TransCharacter(req_resv, _rev_temp);
 				//截取json
 				string str_rev(_rev_temp);
@@ -2813,12 +2734,12 @@ long _stdcall CapSetNBCardInfo(long objNo, long UID, long opFare, LPSTR jyDT, __
 				*psamID = atoll(subchar(st_out.TransType, 220, 15));//终端号
 				*tac = atoll(subchar(st_out.TransType, 204, 8));//系统检索号
 				*psamJyNo = atol(subchar(st_out.TransType, 610, 6));//终端流水号
-				char _log[1024] = { 0 };
+				char _log[20480] = { 0 };
 				sprintf(_log, "返回值：%d,psamID=%lld,tac=%lld,psamjyNo=%ld", rc, psamID, tac, psamJyNo);
 				W_ReadCardLog("出参处理完毕");
 				W_ReadCardLog(_log);
 				string str_json = Stu2json(st_out, ALLIDCARD);
-				char _jsonlog[1024];
+				char _jsonlog[20480];
 				sprintf(_jsonlog, "返回json:%s", str_json.c_str());
 				W_ReadCardLog(_jsonlog);
 				//消费记录上传
@@ -2877,55 +2798,53 @@ int _stdcall iR_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, c
 	/*strcpy(kh, "411082198204179056");
 	return 0;*/
 	//以上临时测试
-	int type = 0;
-	char outJson[10240] = { 0 };
-	long ret = GetCusInfoByUnion(outJson, &type);
-	string strlog = "GetCusInfoByUnion完成,返回值：" + ret;
-	W_ReadCardLog(strlog.c_str());
-	if (ret == 0)
+	W_ReadCardLog("iR_DDF1EF05Info==================START");
+	if (ISQUERYEDCARD)
 	{
-		//解析json
-		js_vl.clear();
-		js_dep.clear();
-		Json::Reader reader;
-		try
+		int type = 0;
+		char outJson[204800] = { 0 };
+		long ret = GetCusInfoByUnion(outJson, &type);
+		string strlog = "GetCusInfoByUnion完成,返回值：" + ret;
+		W_ReadCardLog(strlog.c_str());
+		if (ret == 0)
 		{
-			string strJson(outJson);
-			reader.parse(strJson, js_vl);
-			if (js_vl["flag"].asString() == "1")//查询成功
+			//解析json
+			js_vl.clear();
+			Json::Reader reader;
+			try
 			{
-				initKV();
-				string str_dep = decrypt(js_vl["content"]["data"].asString());//解密data参数
-				char deptemp[1024] = { 0 };
-				TransCharacter(str_dep.c_str(), deptemp);
-				string strtemp(deptemp);
-				string strlog = "解密后字符串：" + strtemp;
-				W_ReadCardLog(strlog.c_str());
-				reader.parse(strtemp, js_dep);
-				W_ReadCardLog("INFO 查询成功");
-				//处理出参
-				strcpy(kh, js_dep["papersNum"].asString().c_str());
-				W_ReadCardLog("卡号拷贝完成");
-				strcpy(ALLIDCARD, kh);
-				W_ReadCardLog("全局CARDID拷贝完成");
-				return 0;
-			}
-			else
-			{
-				W_ReadCardLog("ERROR 查询失败");
-				return -11;
-			}
+				string strJson(outJson);
+				reader.parse(strJson, js_vl);
+				if (js_vl["flag"].asString() == "1")//查询成功
+				{
+					W_ReadCardLog("INFO 查询成功");
+					//处理出参
+					strcpy(kh, js_vl["content"]["data"]["papersNum"].asString().c_str());
+					strcpy(ALLIDCARD, kh);
+					return 0;
+				}
+				else
+				{
+					W_ReadCardLog("ERROR 查询失败");
+					return -11;
+				}
 
+			}
+			catch (const std::exception&ex)
+			{
+				W_ReadCardLog("解密程序异常退出");
+				return -13;
+			}
 		}
-		catch (const std::exception&ex)
+		else
 		{
-			W_ReadCardLog("解密程序异常退出");
-			return -13;
+			return ret;
 		}
 	}
 	else
 	{
-		return ret;
+		strcpy(kh, js_vl["content"]["data"]["papersNum"].asString().c_str());
+		return 0;
 	}
 }
 int _stdcall iW_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, char* fkjgdm, char* fkjgzs, char* fksj, char* kh, char* aqm, char* xpxlh, char* yycsdm)
@@ -2940,7 +2859,7 @@ int _stdcall GetBCNAndICN(char* bcn, char* icn)//此函数弃用
 	if (ret == 0)
 	{
 		strcpy(_bankNo, bcn);
-		char req_resv[1024];
+		char req_resv[20480];
 		LPSTR req_ip;
 		req_ip = GetValueInIni("MIS", "BCNIP", iniFileName);
 		short _port = GetPrivateProfileIntA("MIS", "BCNPORT", 80, iniFileName);
@@ -2952,7 +2871,7 @@ int _stdcall GetBCNAndICN(char* bcn, char* icn)//此函数弃用
 		W_ReadCardLog("EVENT  SendPostRequest结束");
 		if (0 == ret_sendpost)
 		{
-			char _rev_temp[1024] = { 0 };
+			char _rev_temp[20480] = { 0 };
 			TransCharacter(req_resv, _rev_temp);
 			//乱码处理完毕
 			W_ReadCardLog("INFO  乱码处理结束");
@@ -3013,6 +2932,7 @@ int _stdcall iR_DDF1EF06Info(HANDLE hdev, char* xm, char* xb, char* mz, char* cs
 	return 0;*/
 	//以上临时测试
 	W_ReadCardLog("iR_DDF1EF06Info==================START");
+
 	if (js_vl["flag"].asString() == "1")
 	{
 		//W_ReadCardLog("INFO 查询成功");
@@ -3021,9 +2941,9 @@ int _stdcall iR_DDF1EF06Info(HANDLE hdev, char* xm, char* xb, char* mz, char* cs
 		try
 		{
 
-			strcpy(xm, js_dep["userName"].asString().c_str());
-			strcpy(CUSNAME, js_dep["userName"].asString().c_str());
-			strcpy(sfzh, js_dep["papersNum"].asString().c_str());
+			strcpy(xm, js_vl["content"]["data"]["userName"].asString().c_str());
+			strcpy(CUSNAME, js_vl["content"]["data"]["userName"].asString().c_str());
+			strcpy(sfzh, js_vl["content"]["data"]["papersNum"].asString().c_str());
 			strcpy(ALLIDCARD, sfzh);
 			if (18 == strlen(sfzh))
 			{
@@ -3076,8 +2996,8 @@ int _stdcall iR_DDF1EF08Info(HANDLE hdev, char* kyxq, char* brdh1, char* brdh2, 
 		//处理出参
 		try
 		{
-			strcpy(brdh1, js_dep["telephone"].asString().c_str());
-			strcpy(brdh2, js_dep["telephone"].asString().c_str());
+			strcpy(brdh1, js_vl["content"]["data"]["telephone"].asString().c_str());
+			strcpy(brdh2, js_vl["content"]["data"]["telephone"].asString().c_str());
 			return 0;
 		}
 		catch (const std::exception&)
@@ -3107,7 +3027,7 @@ int _stdcall iR_DF01EF05Info(HANDLE hdev, char* dzlb1, char* dz1, char* dzlb2, c
 		//处理出参
 		try
 		{
-			strcpy(dz1, js_dep["patientAddr"].asString().c_str());
+			strcpy(dz1, js_vl["content"]["data"]["patientAddr"].asString().c_str());
 			return 0;
 		}
 		catch (const std::exception&)
