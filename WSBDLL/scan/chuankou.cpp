@@ -23,7 +23,7 @@ BOOL CSerial::Open(int nPort/*=2*/, int nBaud/*=9600*/)
 	}
 
 	char szPort[15];
-	DCB dcb = { 0 };
+	DCB dcb = { 0 };   
 
 	sprintf(szPort, "COM%d", nPort);
 	m_hIDComDev = CreateFileA(szPort, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);

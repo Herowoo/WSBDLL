@@ -61,7 +61,7 @@ int T_READQR = 0;
 //计时器初始时间
 clock_t N = 0;
 //
-long R = 1;
+long TOTALUID = 0;
 //二维码接口调用开关
 int COM_OPEN = 0;
 //寻卡循环开关
@@ -1314,7 +1314,7 @@ long SendPostRequest(const char *ip, short port, char *bufSend, char *recv_buf)
 			return -4;		//发送失败
 		}
 		char* recvbuf = recv_buf;
-		recv(sHost, recvbuf, 204800, 0);
+		recv(sHost, recvbuf, 2048, 0);
 		//W_ReadCardLog(recvbuf);
 		closesocket(sHost); //关闭套接字  
 		WSACleanup();       //释放套接字资源  
@@ -1932,6 +1932,7 @@ long GetCusInfoByUnion(char* outMsg, int* type)
 	//读实体卡
 	if (ret == 0)
 	{
+		memset(KH, 0x00, 20);
 		W_ReadCardLog("读卡方式");
 		string content_temp(_info);
 		//保存身份证号码到IDCARD中
@@ -1955,8 +1956,7 @@ long GetCusInfoByUnion(char* outMsg, int* type)
 	}
 	if (ISGETINFO)
 	{
-
-		char req_resv[20480];
+		char req_resv[2048];
 		LPSTR req_ip;
 		req_ip = GetValueInIni("MIS", "BCNIP", iniFileName);
 		short _port = GetPrivateProfileIntA("MIS", "BCNPORT", 80, iniFileName);
@@ -1971,13 +1971,12 @@ long GetCusInfoByUnion(char* outMsg, int* type)
 		sendvalue["method"] = searchtype;
 		string sendJson = sendvalue.toStyledString();
 		char _send_buff[20480] = { 0 };
-		
-		memcpy(_send_buff, sendJson.c_str(), 20480);
+		strcpy(_send_buff, sendJson.c_str());
 		//发送请求
 		long ret_sendpost = SendPostRequest(req_ip, _port, _send_buff, req_resv);
 		if (0 == ret_sendpost)
 		{
-			char _rev_temp[20480] = { 0 };
+			char _rev_temp[2048] = { 0 };
 			TransCharacter(req_resv, _rev_temp);
 			//截取json
 			string str_rev(_rev_temp);
@@ -2071,7 +2070,7 @@ long _stdcall CapNBQueryCard(long *UID)
 	if (T_PAR ==1)
 	{
 		SaveTotalArg(0);
-		*UID = R;
+		*UID = TOTALUID;
 		ISQUERYEDCARD = true;
 		return 0;
 	}
@@ -2102,7 +2101,9 @@ long _stdcall CapNBQueryCard(long *UID)
 			str.substr(str.find_last_of("0") + 1);
 			*UID = atol(str.c_str());
 			//将身份证号存入全局变量中
+			memset(KH, 0x00, 20);
 			strcpy(KH, _info);
+			TOTALUID = *UID;	//更新全局UID为最新UID
 			//判断上一次读二维码是否成功，如果成功则直接直接return 0，否则进行扫码
 			
 		}
@@ -2121,28 +2122,30 @@ long _stdcall CapNBQueryCard(long *UID)
 					*UID = testuid;
 					memset(ALLQRCODE, 0x00, 100);
 					strcpy(ALLQRCODE, _info);
+					TOTALUID = *UID;	//更新全局UID为最新UID
+
 				}
 				else
 				{
 					ISQUERYEDCARD = false;
 					W_ReadCardLog("1R2S3F");
+					
 
 				}
 			//}
 			
 		}
 		//N = clock();
-		R = *UID;	//更新全局UID为最新UID
 	}
 	else
 	{
 		W_ReadCardLog("1F");
 		//返回上次UID
 		ISQUERYEDCARD = false;
-		*UID = R;
+		*UID = TOTALUID;
 	}
 	char _log[100] = { 0 };
-	sprintf(_log, "INFO 寻卡返回UID：%d", *UID);
+	sprintf(_log, "INFO TOTALUID：%d", TOTALUID);
 	W_ReadCardLog(_log);
 	return 0;
 }
@@ -2205,7 +2208,8 @@ long WINAPI CapSetNBCardInfo_Str1(long objNo, long uid, long opFare, LPSTR jyDT,
 			sendvalue["content"]["merName"] = GetValueInIni("MIS", "MERNAME", iniFileName);
 			string sendJson = sendvalue.toStyledString();
 			char _send_buff[20480] = { 0 };
-			memcpy(_send_buff, sendJson.c_str(), 20480);
+			//memcpy(_send_buff, sendJson.c_str(), sendJson.length);
+			strcpy(_send_buff, sendJson.c_str());
 			W_ReadCardLog(_send_buff);
 			//提交接口
 			LPSTR req_ip;
@@ -2417,7 +2421,8 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 			string sendJson = sendvalue.toStyledString();
 			char _send_buff[20480] = { 0 };
 		
-			memcpy(_send_buff, sendJson.c_str(), 20480);
+			//memcpy(_send_buff, sendJson.c_str(), sendJson.length);
+			strcpy(_send_buff, sendJson.c_str());
 			W_ReadCardLog(_send_buff);
 			//提交接口
 			LPSTR req_ip;
@@ -2638,7 +2643,8 @@ long _stdcall CapSetNBCardInfo(long objNo, long UID, long opFare, LPSTR jyDT, __
 			sendvalue["content"]["merName"] = GetValueInIni("MIS", "MERNAME", iniFileName);
 			string sendJson = sendvalue.toStyledString();
 			char _send_buff[20480] = { 0 };
-			memcpy(_send_buff, sendJson.c_str(), 20480);
+			//memcpy(_send_buff, sendJson.c_str(), sendJson.length);
+			strcpy(_send_buff, sendJson.c_str());
 			W_ReadCardLog(_send_buff);
 			//提交接口
 			LPSTR req_ip;
@@ -2843,8 +2849,8 @@ int _stdcall iR_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, c
 	}
 	else
 	{
-		strcpy(kh, js_vl["content"]["data"]["papersNum"].asString().c_str());
-		return 0;
+		//strcpy(kh, js_vl["content"]["data"]["papersNum"].asString().c_str());
+		return -1;
 	}
 }
 int _stdcall iW_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, char* fkjgdm, char* fkjgzs, char* fksj, char* kh, char* aqm, char* xpxlh, char* yycsdm)
