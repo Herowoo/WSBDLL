@@ -62,6 +62,8 @@ int T_READQR = 0;
 clock_t N = 0;
 //
 long TOTALUID = 0;
+//全局寻卡类型
+int TOTALTYPE = 0;
 //二维码接口调用开关
 int COM_OPEN = 0;
 //寻卡循环开关
@@ -401,10 +403,11 @@ string _stdcall Stu2json(ST_MISPOS_OUT st, LPSTR idcardno)
 	return str_json;
 }
 
-
+//三合一接口,CardType=1 扫码;CardType=2 磁条卡;CardType=3,非接卡;
 int _stdcall GetBCNorIDC(char* misTradeNo, char* info, int* type)
 {
 	//HMODULE Inst = LoadLibraryA("KeeperClient.dll");
+	W_ReadCardLog("GetBCNorIDC==================START");
 	_mistrans trans = (_mistrans)GetProcAddress(hdllInst, "misposTrans");
 
 	ST_MISPOS_IN st_in;
@@ -421,6 +424,7 @@ int _stdcall GetBCNorIDC(char* misTradeNo, char* info, int* type)
 		strTemp.erase(strTemp.find_first_of(" "));
 		strcpy(info, strTemp.c_str());
 		*type = int(st_out.CardType[0]);
+		W_ReadCardLog(info);
 	}
 	//memcpy(tac, st_out.ReferNo, sizeof(st_out.ReferNo));
 	//memcpy(psamID, st_out.TerminalId, sizeof(st_out.TerminalId));
@@ -1917,32 +1921,14 @@ void OpFile()
 	W_ReadCardLog("INFO 删除本目录临时文件");
 }
 //通过读卡或二维码获取个人信息
-long GetCusInfoByUnion(char* outMsg, int* type)
+long GetCusInfoByUnion(char* outMsg)
 {
-	
-	js_vl.clear();
-	memset(ALLIDCARD, 0x00, 20);
-	char _info[200] = { 0 };
-	//先确认支付方式
-	bool ISGETINFO = false;
-	int ret = -1;
-	ret = GetBankCardNo(_info);
+	W_ReadCardLog("GetCusInfoByUnion================START");
 	string content;
 	string searchtype;
-	//读实体卡
-	if (ret == 0)
-	{
-		memset(KH, 0x00, 20);
-		W_ReadCardLog("读卡方式");
-		string content_temp(_info);
-		//保存身份证号码到IDCARD中
-		strcpy(ALLIDCARD, _info);
-		content = content_temp;
-		ISGETINFO = true;
-		searchtype = "searchIdCard";
-		*type = 2;
-	}
-	if (strlen(ALLQRCODE) != 0)
+	//先确认支付方式
+	bool ISGETINFO = false;
+	if (TOTALTYPE==1)//二维码
 	{
 		W_ReadCardLog("读二维码方式");
 
@@ -1952,8 +1938,23 @@ long GetCusInfoByUnion(char* outMsg, int* type)
 		//清除全局变量IDCARD
 		memset(ALLQRCODE, 0x00, 100);
 		searchtype = "search";
+	}
+	if (TOTALTYPE == 2)//磁条卡
+	{
+		W_ReadCardLog("读磁条卡方式");
 
 	}
+	if (TOTALTYPE == 3)//非接卡
+	{
+		W_ReadCardLog("读卡方式");
+		string content_kh(KH);
+		ISGETINFO = true;
+		content = content_kh;
+		//清除全局变量IDCARD
+		memset(KH, 0x00, 20);
+		searchtype = "searchIdCard";
+	}
+	js_vl.clear();
 	if (ISGETINFO)
 	{
 		char req_resv[2048];
@@ -1970,8 +1971,11 @@ long GetCusInfoByUnion(char* outMsg, int* type)
 		sendvalue["serialNumber"] = serialNo;
 		sendvalue["method"] = searchtype;
 		string sendJson = sendvalue.toStyledString();
-		char _send_buff[20480] = { 0 };
+		char _send_buff[2048] = { 0 };
 		strcpy(_send_buff, sendJson.c_str());
+		char logtmp[2048];
+		sprintf(logtmp,"发送请求的内容为： %s", _send_buff);
+		W_ReadCardLog(logtmp);
 		//发送请求
 		long ret_sendpost = SendPostRequest(req_ip, _port, _send_buff, req_resv);
 		if (0 == ret_sendpost)
@@ -2080,66 +2084,63 @@ long _stdcall CapNBQueryCard(long *UID)
 	//如果上次调用本接口与此次调用接口间隔时间大于$秒
 	if ((sec > TOUT) && (TOUT >= 0))
 	{
-		W_ReadCardLog("进入第一个if语句");
+		W_ReadCardLog("寻卡函数开始真正寻卡");
+		LPSTR _mistradeno = GetValueInIni("MIS", "MisTraceNo", iniFileName);
+		TOTALTYPE = 0;
+		char _info[200];
+		int ret = GetBCNorIDC(_mistradeno,_info , &TOTALTYPE);
 		char shijian[24];
 		time_t t = time(0);
 		strftime(shijian, sizeof(shijian), "%d%H%M%S", localtime(&t));
 		long testuid = 0;
 		testuid = atol(shijian);
-
-		char _info[200] = { 0 };
-		int ret = -1;
-		ret = GetBankCardNo(_info);
-		W_ReadCardLog("读居民健康卡信息结束");
 		if (ret==0)	//读卡成功
 		{
+			W_ReadCardLog("寻卡成功");
 			ISQUERYEDCARD = true;
-			W_ReadCardLog("1R2T");
-			char _uid[9];
-			strncpy(_uid, _info + 9, 9);
-			string str(_uid);
-			str.substr(str.find_last_of("0") + 1);
-			*UID = atol(str.c_str());
-			//将身份证号存入全局变量中
-			memset(KH, 0x00, 20);
-			strcpy(KH, _info);
+			if (TOTALTYPE ==1)//二维码
+			{
+				W_ReadCardLog("二维码");
+				*UID = testuid;
+				memset(ALLQRCODE, 0x00, 100);
+				strcpy(ALLQRCODE, _info);
+				
+			}
+			if (TOTALTYPE ==2)//磁条卡
+			{
+				W_ReadCardLog("磁条卡");
+				//将ifno输出到焦点
+				for(int i = 0;i<strlen(_info);i++)
+				{
+					keybd_event(_info[i], 0, 0, 0);
+					keybd_event(_info[i], 0, KEYEVENTF_KEYUP, 0);
+					//Sleep(100);
+				}
+				keybd_event(VK_RETURN, 0, 0, 0);
+				keybd_event(VK_RETURN, 0, KEYEVENTF_KEYUP, 0);
+				*UID = testuid;
+
+
+			}
+			if (TOTALTYPE ==3)
+			{
+				W_ReadCardLog("非接卡");
+				char _uid[9];
+				strncpy(_uid, _info + 9, 9);
+				string str(_uid);
+				str.substr(str.find_last_of("0") + 1);
+				*UID = atol(str.c_str());
+				//将身份证号存入全局变量中
+				memset(KH, 0x00, 20);
+				strcpy(KH, _info);
+			}
 			TOTALUID = *UID;	//更新全局UID为最新UID
-			//判断上一次读二维码是否成功，如果成功则直接直接return 0，否则进行扫码
-			
-		}
-		else
-		{
-				W_ReadCardLog("进入第二个if语句");
-				ret = GetComInputInfo(_info);
-				W_ReadCardLog("读二维码结束");
-				if (ret == 0)
-				{
-					ISQUERYEDCARD = true;
-
-					//读二维码成功
-					SaveTotalArg(1);
-					W_ReadCardLog("1R2S3T");
-					*UID = testuid;
-					memset(ALLQRCODE, 0x00, 100);
-					strcpy(ALLQRCODE, _info);
-					TOTALUID = *UID;	//更新全局UID为最新UID
-
-				}
-				else
-				{
-					ISQUERYEDCARD = false;
-					W_ReadCardLog("1R2S3F");
-					
-
-				}
-			//}
-			
 		}
 		//N = clock();
 	}
 	else
 	{
-		W_ReadCardLog("1F");
+		W_ReadCardLog("没有真正寻卡");
 		//返回上次UID
 		ISQUERYEDCARD = false;
 		*UID = TOTALUID;
@@ -2807,9 +2808,8 @@ int _stdcall iR_DDF1EF05Info(HANDLE hdev, char* klb, char* gfbb, char* fkjgmc, c
 	W_ReadCardLog("iR_DDF1EF05Info==================START");
 	if (ISQUERYEDCARD)
 	{
-		int type = 0;
-		char outJson[204800] = { 0 };
-		long ret = GetCusInfoByUnion(outJson, &type);
+		char outJson[2048] = { 0 };
+		long ret = GetCusInfoByUnion(outJson);
 		string strlog = "GetCusInfoByUnion完成,返回值：" + ret;
 		W_ReadCardLog(strlog.c_str());
 		if (ret == 0)
