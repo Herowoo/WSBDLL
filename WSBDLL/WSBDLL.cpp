@@ -180,7 +180,6 @@ typedef struct
 } ST_MISPOS_OUT;
 
 typedef int(WINAPI *_mistrans)(void* input, void* output);
-//从字符串中删除指定的字符
 void DeleteAllMark(string &str, const string &mark)
 {
 	size_t nsize = mark.size();
@@ -197,7 +196,6 @@ void DeleteAllMark(string &str, const string &mark)
 		}
 	}
 }
-//去除日期中的符号
 string TransDate(char* jydt)
 {
 	std::string str_dt(jydt);
@@ -300,7 +298,7 @@ int _stdcall GetBankCardNo(char* bankNo)
 	W_ReadCardLog(log);
 	return rc;
 }
-//结构转json
+
 string _stdcall Stu2json(ST_MISPOS_OUT st, LPSTR idcardno)
 {
 	Json::Value root;
@@ -418,8 +416,6 @@ int _stdcall GetBCNorIDC(char* misTradeNo, char* info, int* type)
 	memset(&st_out, 0x00, sizeof(ST_MISPOS_OUT));
 	memcpy(st_in.TransType, "56", 2);	//交易类型，定值
 	memcpy(st_in.MisTraceNo, misTradeNo, 6);
-	char* cssj = "10";//超时时间
-	memcpy(st_in.PreInput, cssj, 3);
 	int rc = trans(&st_in, &st_out);
 	if (0 == rc)
 	{
@@ -2058,7 +2054,7 @@ long _stdcall  CapGetNBCardInfo(CUSTOMERINFO *info)
 	W_ReadCardLog("EVENT CLOSECOM===============================START");
 	//CUSTOMERINFO custinfo;
 	//初始化余额，通过HIS扣费前校验
-	info->Ye = 10000 * 100;
+	info->Ye = 1000 * 100;
 	strcpy(info->CardASN, "17082537");
 	info->CardClass = 8;
 	strcpy(info->Name, CUSNAME);
@@ -2300,7 +2296,6 @@ long WINAPI CapSetNBCardInfo_Str1(long objNo, long uid, long opFare, LPSTR jyDT,
 			W_ReadCardLog("INFO 扣费参数传入完毕");
 			int rc = trans(&st_in, &st_out);
 			char koufeilog[100] = { 0 };
-
 			sprintf(koufeilog, "扣费完成,返回：%d", rc);
 
 			if (rc == 0)
@@ -2371,11 +2366,22 @@ int GetTime()
 //扣款
 long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT, __int64 *psamID, long *psamJyNo, char *tac, int redix)
 {
+
+	/*W_ReadCardLog("结束当前进程");
+	DWORD dwProcessId = ::GetCurrentProcessId();
+	char log1[100];
+	sprintf(log1, "当前进程ID：%ld", dwProcessId);
+	W_ReadCardLog(log1);
+	HANDLE hProcess = ::OpenProcess(PROCESS_TERMINATE, false, dwProcessId);
+	W_ReadCardLog("codeline1");
+	::TerminateProcess(hProcess, 0);
+	W_ReadCardLog("codeline2");*/
+
 	W_ReadCardLog("CapSetNBCardInfo_Str=================START");
 	//先确认支付方式
 	LPSTR _mistradeno = GetValueInIni("MIS", "MisTraceNo", iniFileName);
 	char _info[100] = { 0 };
-	int _cardtype = 0;	//CardType=1 扫码;CardType=2 磁条卡;CardType=3,非接卡;
+	int _cardtype = 0;	//1为扫码，2为实体卡
 	int ret = GetBCNorIDC(_mistradeno, _info, &_cardtype);
 	int i = 0; //循环计数
 	while ((ret==-3)&&(i<12))
