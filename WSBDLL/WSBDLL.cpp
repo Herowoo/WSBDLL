@@ -46,6 +46,8 @@ LPCSTR iniFileName = "./ChgCity.ini";
 LPSTR RIZHI = "debug.log";
 LPSTR PREUPLOADFILE = "C:/PreUpload.dat";
 LPSTR TOTALFILE = "Total_ZXYY_PAR.txt";
+//是否已签到
+bool ISSIGNED = false;
 //全局身份证号码
 char ALLIDCARD[20] = { 0 };
 //全局电子健康卡二维码信息
@@ -1928,7 +1930,7 @@ long GetCusInfoByUnion(char* outMsg)
 	string searchtype;
 	//先确认支付方式
 	bool ISGETINFO = false;
-	if (TOTALTYPE==1)//二维码
+	if (TOTALTYPE=='1')//二维码
 	{
 		W_ReadCardLog("读二维码方式");
 
@@ -1939,12 +1941,12 @@ long GetCusInfoByUnion(char* outMsg)
 		memset(ALLQRCODE, 0x00, 100);
 		searchtype = "search";
 	}
-	if (TOTALTYPE == 2)//磁条卡
+	if (TOTALTYPE == '2')//磁条卡
 	{
 		W_ReadCardLog("读磁条卡方式");
-
+		//do nothing
 	}
-	if (TOTALTYPE == 3)//非接卡
+	if (TOTALTYPE == '3')//非接卡
 	{
 		W_ReadCardLog("读卡方式");
 		string content_kh(KH);
@@ -2010,21 +2012,21 @@ long GetCusInfoByUnion(char* outMsg)
 	}
 }
 //写入和读取固定文件内容
-void SaveTotalArg(int inputMsg)
+void SaveTotalArg(int inputMsg, LPSTR filename)
 {
-	
-	std::ofstream fout(TOTALFILE, std::ios::trunc);
+
+	std::ofstream fout(filename, std::ios::trunc);
 	fout << inputMsg << endl;
 	fout.close();
 }
-LPSTR GetTotalArg()
+LPSTR GetTotalArg(LPSTR filename)
 {
-	char buffer[20480] = { 0 };
+	char buffer[100] = { 0 };
 	std::ifstream fin;
-	fin.open(TOTALFILE, std::ios::in);
+	fin.open(filename, std::ios::in);
 	if (!fin.eof())
 	{
-		fin.getline(buffer, 20480, '\n');
+		fin.getline(buffer, 100, '\n');
 		return buffer;
 	}
 	else
@@ -2033,12 +2035,50 @@ LPSTR GetTotalArg()
 	}
 }
 /*========================================实现城市通接口=======================================================*/
+//MIS设备签到
+int QianDao()
+{
+	W_ReadCardLog("开始签到");
+	_mistrans trans = (_mistrans)GetProcAddress(hdllInst, "misposTrans");
+	LPSTR _mistradeno = GetValueInIni("MIS", "MisTraceNo", iniFileName);
+	//W_ReadCardLog("INFO 定义输入输出结构");
+	ST_MISPOS_IN st_in;
+	ST_MISPOS_OUT st_out;
+	memset(&st_in, 0x00, sizeof(ST_MISPOS_IN));
+	memset(&st_out, 0x00, sizeof(ST_MISPOS_OUT));
+	memcpy(st_in.TransType, "09", 2);	//交易类型，定值
+	memcpy(st_in.MisTraceNo, _mistradeno, 6);
+	int rc = -1;
+	try
+	{
+		rc = trans(&st_in, &st_out);
+
+	}
+	catch (const std::exception&)
+	{
+		W_ReadCardLog("MIS签到异常");
+
+		return rc;
+	}
+	return  rc;
+}
 //打开连接
 long _stdcall OpenCom()
 {
 	W_ReadCardLog("EVENT OPENCOM===============================START");
 	SWITCH_QCARD = true;
-
+	//如果当日未签到且时间在13到14之间，进行签到
+	time_t time_now = time(0);
+	tm *ltm = localtime(&time_now);
+	if (!ISSIGNED&& (ltm->tm_hour >= 13)&& (ltm->tm_hour < 14))
+	{
+		int ret = QianDao();
+		if (ret==0)
+		{
+			ISSIGNED = true;
+			W_ReadCardLog("签到完成");
+		}
+	}
 	return 0;
 }
 //关闭连接
@@ -2051,10 +2091,10 @@ void _stdcall CloseCom()
 //读取用户信息
 long _stdcall  CapGetNBCardInfo(CUSTOMERINFO *info)
 {
-	W_ReadCardLog("EVENT CLOSECOM===============================START");
+	W_ReadCardLog("EVENT CapGetNBCardInfo===============================START");
 	//CUSTOMERINFO custinfo;
 	//初始化余额，通过HIS扣费前校验
-	info->Ye = 1000 * 100;
+	info->Ye = 10000 * 100;
 	strcpy(info->CardASN, "17082537");
 	info->CardClass = 8;
 	strcpy(info->Name, CUSNAME);
@@ -2066,14 +2106,14 @@ long _stdcall  CapGetNBCardInfo(CUSTOMERINFO *info)
 long _stdcall CapNBQueryCard(long *UID)
 {
 	W_ReadCardLog("CapNBQueryCard==================START");
-	int T_PAR = atol(GetTotalArg());
+	int T_PAR = atol(GetTotalArg(TOTALFILE));
 	char log3[100];
 	sprintf(log3, "当前全局扫码次数为：%d", T_PAR);
 	W_ReadCardLog(log3);
 
 	if (T_PAR ==1)
 	{
-		SaveTotalArg(0);
+		SaveTotalArg(0, TOTALFILE);
 		*UID = TOTALUID;
 		ISQUERYEDCARD = true;
 		return 0;
@@ -2082,7 +2122,7 @@ long _stdcall CapNBQueryCard(long *UID)
 	int sec = (int)(end - N) / CLOCKS_PER_SEC;
 	int TOUT = atoi(GetValueInIni("MIS", "TIMEOUT", iniFileName));
 	//如果上次调用本接口与此次调用接口间隔时间大于$秒
-	if ((sec > TOUT) && (TOUT >= 0))
+	if (sec > TOUT)
 	{
 		W_ReadCardLog("寻卡函数开始真正寻卡");
 		LPSTR _mistradeno = GetValueInIni("MIS", "MisTraceNo", iniFileName);
@@ -2097,8 +2137,10 @@ long _stdcall CapNBQueryCard(long *UID)
 		if (ret==0)	//读卡成功
 		{
 			W_ReadCardLog("寻卡成功");
+			W_ReadCardLog(to_string(TOTALTYPE).c_str());
+			
 			ISQUERYEDCARD = true;
-			if (TOTALTYPE ==1)//二维码
+			if (TOTALTYPE =='1')//二维码
 			{
 				W_ReadCardLog("二维码");
 				*UID = testuid;
@@ -2106,7 +2148,7 @@ long _stdcall CapNBQueryCard(long *UID)
 				strcpy(ALLQRCODE, _info);
 				
 			}
-			if (TOTALTYPE ==2)//磁条卡
+			if (TOTALTYPE =='2')//磁条卡
 			{
 				W_ReadCardLog("磁条卡");
 				//将ifno输出到焦点
@@ -2122,7 +2164,7 @@ long _stdcall CapNBQueryCard(long *UID)
 
 
 			}
-			if (TOTALTYPE ==3)
+			if (TOTALTYPE =='3')
 			{
 				W_ReadCardLog("非接卡");
 				char _uid[9];
@@ -2135,6 +2177,7 @@ long _stdcall CapNBQueryCard(long *UID)
 				strcpy(KH, _info);
 			}
 			TOTALUID = *UID;	//更新全局UID为最新UID
+			SaveTotalArg(1, TOTALFILE);
 		}
 		//N = clock();
 	}
@@ -2366,17 +2409,6 @@ int GetTime()
 //扣款
 long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT, __int64 *psamID, long *psamJyNo, char *tac, int redix)
 {
-
-	/*W_ReadCardLog("结束当前进程");
-	DWORD dwProcessId = ::GetCurrentProcessId();
-	char log1[100];
-	sprintf(log1, "当前进程ID：%ld", dwProcessId);
-	W_ReadCardLog(log1);
-	HANDLE hProcess = ::OpenProcess(PROCESS_TERMINATE, false, dwProcessId);
-	W_ReadCardLog("codeline1");
-	::TerminateProcess(hProcess, 0);
-	W_ReadCardLog("codeline2");*/
-
 	W_ReadCardLog("CapSetNBCardInfo_Str=================START");
 	//先确认支付方式
 	LPSTR _mistradeno = GetValueInIni("MIS", "MisTraceNo", iniFileName);
@@ -2398,7 +2430,7 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 	W_ReadCardLog(_testlog);
 	if (ret == 0)
 	{
-		if (1 == _cardtype)//扫码
+		if ('1' == _cardtype)//扫码
 		{
 			Json::Value sendvalue;
 			string orgcode(GetValueInIni("MIS", "ORGCODE", iniFileName));
@@ -2494,7 +2526,7 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 				return ret_sendpost;
 			}
 		}
-		else if ((2 == _cardtype) || (3 == _cardtype))//cardtype=2,许都通卡；cardtype=3,非接卡（不一定是金融IC卡）
+		else if (('2' == _cardtype) || ('3' == _cardtype))//cardtype=2,许都通卡；cardtype=3,非接卡（不一定是金融IC卡）
 		{
 			//HMODULE hdllInst = LoadLibraryA("KeeperClient.dll");
 			_mistrans trans = (_mistrans)GetProcAddress(hdllInst, "misposTrans");
