@@ -62,6 +62,8 @@ char KH[20] = { 0 };
 int T_READQR = 0;
 //计时器初始时间
 clock_t N = 0;
+//二维码读取成功计时器
+clock_t ERWEIMA = 0;
 //
 long TOTALUID = 0;
 //全局寻卡类型
@@ -301,7 +303,7 @@ int _stdcall GetBankCardNo(char* bankNo)
 	return rc;
 }
 
-string _stdcall Stu2json(ST_MISPOS_OUT st, LPSTR idcardno)
+string _stdcall Stu2json(ST_MISPOS_OUT st, LPSTR idcardno,LPSTR newtac)
 {
 	Json::Value root;
 	Json::FastWriter fw;
@@ -314,7 +316,7 @@ string _stdcall Stu2json(ST_MISPOS_OUT st, LPSTR idcardno)
 	//root["ExpDate"] = subchar(st.TransType, 0, 2);
 	//root["Track2"] = st.Track2;
 	//root["Track3"] = st.Track3;
-	root["ReferNo"] = subchar(st.ReferNo, 0, 8);
+	root["ReferNo"] = newtac;
 	root["AuthNo"] = subchar(st.AuthNo, 0, 6);
 	root["RspCode"] = subchar(st.RspCode, 0, 2);
 	root["TerminalId"] = subchar(st.TerminalId, 0, 15);
@@ -426,6 +428,15 @@ int _stdcall GetBCNorIDC(char* misTradeNo, char* info, int* type)
 		strTemp.erase(strTemp.find_first_of(" "));
 		strcpy(info, strTemp.c_str());
 		*type = int(st_out.CardType[0]);
+		//如果cardtype为3，则将身份证号赋值给全局变量ALLIDCARD
+		char log[100];
+		sprintf(log, "cardtype=%d，info=%s", *type, info);
+		W_ReadCardLog(log);
+		if ((*type==51)&&(strlen(info)!=0))
+		{
+			strcpy(ALLIDCARD, info);
+			W_ReadCardLog("完成全局变量赋值");
+		}
 		W_ReadCardLog(info);
 	}
 	//memcpy(tac, st_out.ReferNo, sizeof(st_out.ReferNo));
@@ -2321,6 +2332,7 @@ long WINAPI CapSetNBCardInfo_Str1(long objNo, long uid, long opFare, LPSTR jyDT,
 		}
 		else if ((2 == _cardtype) || (3 == _cardtype))//cardtype=2,许都通卡；cardtype=3,非接卡（不一定是金融IC卡）
 		{
+			strcpy(ALLIDCARD, _info);
 			//HMODULE hdllInst = LoadLibraryA("KeeperClient.dll");
 			_mistrans trans = (_mistrans)GetProcAddress(hdllInst, "misposTrans");
 
@@ -2344,17 +2356,26 @@ long WINAPI CapSetNBCardInfo_Str1(long objNo, long uid, long opFare, LPSTR jyDT,
 			if (rc == 0)
 			{
 				strcpy(psamID, subchar(st_out.TransType, 220, 15));//终端号
-				strcpy(tac, subchar(st_out.TransType, 204, 8));		//系统检索号
 				*psamJyNo = atol(subchar(st_out.TransType, 610, 6));//终端流水号
+				//2019年9月18日17:14:11 将tac值改为日期+终端号+系统检索号
+				char jyrq[10];
+				char jsh[10];
+				char zdh[4];
+				strcpy(jyrq, subchar(st_out.TransType, 51, 8));
+				strcpy(zdh, subchar(st_out.TransType, 232, 3));
+				strcpy(jsh, subchar(st_out.TransType, 204, 8));		//系统检索号
+				sprintf(tac, "%s%s%s", jyrq, zdh, jsh);
+				//tac值处理完成
 				char _log[20480] = { 0 };
 				sprintf(_log, "psamID=%s,tac=%s,psamjyNo=%ld", psamID, tac, psamJyNo);
+				W_ReadCardLog(_log);
 				W_ReadCardLog("准备处理JSON");
-				string str_json = Stu2json(st_out, ALLIDCARD);
+				string str_json = Stu2json(st_out, ALLIDCARD,tac);
 				char _jsonlog[20480];
 				sprintf(_jsonlog, "返回json:%s", str_json.c_str());
 				W_ReadCardLog(_jsonlog);
 				//消费记录上传
-				//UploadMisBySocket(str_json);
+				UploadMisBySocket(str_json);
 				WriteInFile(PREUPLOADFILE, str_json);
 				return 0;
 			}
@@ -2416,7 +2437,7 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 	int _cardtype = 0;	//1为扫码，2为实体卡
 	int ret = GetBCNorIDC(_mistradeno, _info, &_cardtype);
 	int i = 0; //循环计数
-	while ((ret==-3)&&(i<12))
+	while ((ret==-3)&&(i<15))
 	{
 		i++;
 		Sleep(500);
@@ -2528,6 +2549,7 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 		}
 		else if (('2' == _cardtype) || ('3' == _cardtype))//cardtype=2,许都通卡；cardtype=3,非接卡（不一定是金融IC卡）
 		{
+			strcpy(ALLIDCARD, _info);
 			//HMODULE hdllInst = LoadLibraryA("KeeperClient.dll");
 			_mistrans trans = (_mistrans)GetProcAddress(hdllInst, "misposTrans");
 
@@ -2566,12 +2588,21 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 				try
 				{
 					*psamID = atoll(subchar(st_out.TransType, 220, 15));//终端号
-					strcpy(tac, subchar(st_out.TransType, 204, 8));		//系统检索号
 					*psamJyNo = atol(subchar(st_out.TransType, 610, 6));//终端流水号
-					char _log[20480] = { 0 };
+					//2019年9月18日17:14:11 将tac值改为日期+终端号+系统检索号
+					char jyrq[10];
+					char jsh[10];
+					char zdh[4];
+					strcpy(jyrq, subchar(st_out.TransType, 51, 8));
+					strcpy(zdh, subchar(st_out.TransType, 232, 3));
+					strcpy(jsh, subchar(st_out.TransType, 204, 8));		//系统检索号
+					sprintf(tac, "%s%s%s", jyrq, zdh, jsh);
+					//tac值处理完成
+					char _log[2048] = { 0 };
 					sprintf(_log, "psamID=%lld,tac=%s,psamjyNo=%ld", psamID, tac, psamJyNo);
-					str_json = Stu2json(st_out, ALLIDCARD);
-					char _jsonlog[20480];
+					W_ReadCardLog(_log);
+					str_json = Stu2json(st_out, ALLIDCARD,tac);
+					char _jsonlog[2048];
 					sprintf(_jsonlog, "返回json:%s", str_json.c_str());
 					W_ReadCardLog(_jsonlog);
 					//消费记录上传
@@ -2777,7 +2808,8 @@ long _stdcall CapSetNBCardInfo(long objNo, long UID, long opFare, LPSTR jyDT, __
 				sprintf(_log, "返回值：%d,psamID=%lld,tac=%lld,psamjyNo=%ld", rc, psamID, tac, psamJyNo);
 				W_ReadCardLog("出参处理完毕");
 				W_ReadCardLog(_log);
-				string str_json = Stu2json(st_out, ALLIDCARD);
+				
+				string str_json = Stu2json(st_out, ALLIDCARD, subchar(st_out.TransType, 204, 8));
 				char _jsonlog[20480];
 				sprintf(_jsonlog, "返回json:%s", str_json.c_str());
 				W_ReadCardLog(_jsonlog);
