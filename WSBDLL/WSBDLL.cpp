@@ -20,6 +20,9 @@
 #include <ctime>
 #include <chrono>
 #include <sstream>
+#include <sys/timeb.h>
+#include <time.h>
+#include <stdio.h>
 //AES加密头文件
 //#include "aes.h";
 //#include "aes_encryptor.h";
@@ -46,6 +49,7 @@ LPCSTR iniFileName = "./ChgCity.ini";
 LPSTR RIZHI = "debug.log";
 LPSTR PREUPLOADFILE = "C:/PreUpload.dat";
 LPSTR TOTALFILE = "Total_ZXYY_PAR.txt";
+LPSTR TOTALGBC = "Total_GBC_T.txt";
 //是否已签到
 bool ISSIGNED = false;
 //全局身份证号码
@@ -62,6 +66,8 @@ char KH[20] = { 0 };
 int T_READQR = 0;
 //计时器初始时间
 clock_t N = 0;
+//GETBANORICN时间
+clock_t GBC_T = 0;
 //二维码读取成功计时器
 clock_t ERWEIMA = 0;
 //
@@ -228,6 +234,20 @@ LPSTR GetValueInIni(char* className, char* objName, LPCSTR fileName)
 	delete[] LP_PATH;
 	return rt_Value;
 }
+
+char*   log_Time(void)
+{
+	struct  tm      *ptm;
+	struct  timeb   stTimeb;
+	static  char    szTime[19];
+
+	ftime(&stTimeb);
+	ptm = localtime(&stTimeb.time);
+	sprintf(szTime, "%02d-%02d %02d:%02d:%02d.%03d",
+		ptm->tm_mon + 1, ptm->tm_mday, ptm->tm_hour, ptm->tm_min, ptm->tm_sec, stTimeb.millitm);
+	szTime[18] = 0;
+	return szTime;
+}
 //写入读卡日志
 void W_ReadCardLog(const char* str)
 {
@@ -246,8 +266,31 @@ void W_ReadCardLog(const char* str)
 		strftime(cur_time, sizeof(cur_time), "%Y-%m-%d %H:%M:%S", localtime(&t));
 		ofstream fin;
 		fin.open(log_name, std::ios::app);
-		fin << cur_time << "\t" << str << endl;
+		fin << log_Time() << "\t" << str << endl;
 		fin.close();
+	}
+}
+//写入和读取固定文件内容
+void SaveTotalArg(int inputMsg, LPSTR filename)
+{
+
+	std::ofstream fout(filename, std::ios::trunc);
+	fout << inputMsg << endl;
+	fout.close();
+}
+LPSTR GetTotalArg(LPSTR filename)
+{
+	char buffer[100] = { 0 };
+	std::ifstream fin;
+	fin.open(filename, std::ios::in);
+	if (!fin.eof())
+	{
+		fin.getline(buffer, 100, '\n');
+		return buffer;
+	}
+	else
+	{
+		return NULL;
 	}
 }
 LPSTR subchar(char *schar, int index, int len)
@@ -436,6 +479,15 @@ int _stdcall GetBCNorIDC(char* misTradeNo, char* info, int* type)
 		{
 			strcpy(ALLIDCARD, info);
 			W_ReadCardLog("完成全局变量赋值");
+		}
+		if ((*type==49)&&(strlen(info)!=0))
+		{
+			GBC_T = clock();
+			SaveTotalArg((int)GBC_T, TOTALGBC);
+			char log[100];
+			sprintf(log, "全局扫码时间变量赋值成功，值为：%d", (int)GBC_T);
+			W_ReadCardLog(log);
+			strcpy(ALLQRCODE, info);
 		}
 		W_ReadCardLog(info);
 	}
@@ -2022,29 +2074,117 @@ long GetCusInfoByUnion(char* outMsg)
 		return -3;
 	}
 }
-//写入和读取固定文件内容
-void SaveTotalArg(int inputMsg, LPSTR filename)
+//提供给柯里尔读二维码信息接口
+long GetPersionalInfoByQRCode(LPSTR QRCode, char* outMsg)
 {
-
-	std::ofstream fout(filename, std::ios::trunc);
-	fout << inputMsg << endl;
-	fout.close();
-}
-LPSTR GetTotalArg(LPSTR filename)
-{
-	char buffer[100] = { 0 };
-	std::ifstream fin;
-	fin.open(filename, std::ios::in);
-	if (!fin.eof())
+	string content_qrcode(QRCode);
+	string searchtype = "search";
+	char req_resv[2048];
+	LPSTR req_ip;
+	req_ip = GetValueInIni("MIS", "BCNIP", iniFileName);
+	short _port = GetPrivateProfileIntA("MIS", "BCNPORT", 80, iniFileName);
+	//定义并初始化Json对象
+	Json::Value sendvalue;
+	//string content(_info);
+	string orgcode(GetValueInIni("MIS", "ORGCODE", iniFileName));
+	string serialNo(GetValueInIni("MIS", "SERIALNO", iniFileName));
+	sendvalue["content"] = content_qrcode;
+	sendvalue["organizationCode"] = orgcode;
+	sendvalue["serialNumber"] = serialNo;
+	sendvalue["method"] = searchtype;
+	string sendJson = sendvalue.toStyledString();
+	char _send_buff[2048] = { 0 };
+	strcpy(_send_buff, sendJson.c_str());
+	//发送请求
+	long ret_sendpost = SendPostRequest(req_ip, _port, _send_buff, req_resv);
+	if (0 == ret_sendpost)
 	{
-		fin.getline(buffer, 100, '\n');
-		return buffer;
+		char _rev_temp[2048] = { 0 };
+		TransCharacter(req_resv, _rev_temp);
+		//截取json
+		string str_rev(_rev_temp);
+		string json_rel;
+		int json_bg = str_rev.find_first_of("{", 0);
+		int json_end = str_rev.find_last_of("}");
+		if (json_end > json_bg)
+		{
+			json_rel = str_rev.substr(json_bg, json_end - json_bg + 1);
+			W_ReadCardLog(json_rel.c_str());
+			strcpy(outMsg, json_rel.c_str());
+			return 0;
+		}
+		else
+		{
+			return -1;
+		}
 	}
 	else
 	{
-		return NULL;
+		return -2;
 	}
 }
+//读卡获取个人信息接口
+int __stdcall GetPersionalInfo(int type, char* msgJson)
+{
+	if (type==1)
+	{
+		//调用新开普接口获取身份证号
+		
+		string content_kh(KH);
+		//清除全局变量IDCARD
+		memset(KH, 0x00, 20);
+		string searchtype = "searchIdCard";
+		char req_resv[2048];
+		LPSTR req_ip;
+		req_ip = GetValueInIni("MIS", "BCNIP", iniFileName);
+		short _port = GetPrivateProfileIntA("MIS", "BCNPORT", 80, iniFileName);
+		//定义并初始化Json对象
+		Json::Value sendvalue;
+		//string content(_info);
+		string orgcode(GetValueInIni("MIS", "ORGCODE", iniFileName));
+		string serialNo(GetValueInIni("MIS", "SERIALNO", iniFileName));
+		sendvalue["content"] = content_kh;
+		sendvalue["organizationCode"] = orgcode;
+		sendvalue["serialNumber"] = serialNo;
+		sendvalue["method"] = searchtype;
+		string sendJson = sendvalue.toStyledString();
+		char _send_buff[2048] = { 0 };
+		strcpy(_send_buff, sendJson.c_str());
+		char logtmp[2048];
+		sprintf(logtmp, "发送请求的内容为： %s", _send_buff);
+		W_ReadCardLog(logtmp);
+		//发送请求
+		long ret_sendpost = SendPostRequest(req_ip, _port, _send_buff, req_resv);
+		if (0 == ret_sendpost)
+		{
+			char _rev_temp[2048] = { 0 };
+			TransCharacter(req_resv, _rev_temp);
+			//截取json
+			string str_rev(_rev_temp);
+			string json_rel;
+			int json_bg = str_rev.find_first_of("{", 0);
+			int json_end = str_rev.find_last_of("}");
+			if (json_end > json_bg)
+			{
+				json_rel = str_rev.substr(json_bg, json_end - json_bg + 1);
+				W_ReadCardLog(json_rel.c_str());
+				strcpy(msgJson, json_rel.c_str());
+				return 0;
+			}
+			else
+			{
+				return -1;
+			}
+		}
+		else
+		{
+			return -2;
+		}
+	}
+	
+
+}
+
 /*========================================实现城市通接口=======================================================*/
 //MIS设备签到
 int QianDao()
@@ -2081,7 +2221,8 @@ long _stdcall OpenCom()
 	//如果当日未签到且时间在13到14之间，进行签到
 	time_t time_now = time(0);
 	tm *ltm = localtime(&time_now);
-	if (!ISSIGNED&& (ltm->tm_hour >= 13)&& (ltm->tm_hour < 14))
+	//if (!ISSIGNED&& (ltm->tm_hour >= 13)&& (ltm->tm_hour < 14))
+	if(!ISSIGNED)
 	{
 		int ret = QianDao();
 		if (ret==0)
@@ -2423,12 +2564,149 @@ long _stdcall CapCharge(LPSTR dt, LPSTR mac2, LPSTR tac)
 {
 	return -1;
 }
-int GetTime()
+int ConsumeMis(int opFare,__int64* psamID,char* tac,long* psamJyNo)
 {
-	return clock();
+	W_ReadCardLog("ConsumeMis===================START");
+	_mistrans trans = (_mistrans)GetProcAddress(hdllInst, "misposTrans");
+	LPSTR _mistradeno = GetValueInIni("MIS", "MisTraceNo", iniFileName);
+	//W_ReadCardLog("INFO 定义输入输出结构");
+	ST_MISPOS_IN st_in;
+	ST_MISPOS_OUT st_out;
+	memset(&st_in, 0x00, sizeof(ST_MISPOS_IN));
+	memset(&st_out, 0x00, sizeof(ST_MISPOS_OUT));
+	memcpy(st_in.TransType, "05", 2);	//交易类型，定值
+	char amount_temp[13] = { 0 };
+	sprintf(amount_temp, "%012.12d", opFare);
+	amount_temp[12] = '\0';
+	memcpy(st_in.TransAmount, amount_temp, 12);
+	memcpy(st_in.MisTraceNo, _mistradeno, 6);
+	int rc = trans(&st_in, &st_out);
+	if (rc==0)
+	{
+		*psamID = atoll(subchar(st_out.TransType, 220, 15));//终端号
+		*psamJyNo = atol(subchar(st_out.TransType, 610, 6));//终端流水号
+															//2019年9月18日17:14:11 将tac值改为日期+终端号+系统检索号
+		char jyrq[10];
+		char jsh[10];
+		char zdh[4];
+		strcpy(jyrq, subchar(st_out.TransType, 51, 8));
+		strcpy(zdh, subchar(st_out.TransType, 232, 3));
+		strcpy(jsh, subchar(st_out.TransType, 204, 8));		//系统检索号
+		sprintf(tac, "%s%s%s", jyrq, zdh, jsh);
+		//tac值处理完成
+		char _log[2048] = { 0 };
+		sprintf(_log, "银行卡交易完成，psamID=%lld,tac=%s,psamjyNo=%ld", psamID, tac, psamJyNo);
+		W_ReadCardLog(_log);
+		char _jsonlog[2048];
+		string str_json = Stu2json(st_out, ALLIDCARD, tac);
+		sprintf(_jsonlog, "平台返回:%s", str_json.c_str());
+		W_ReadCardLog(_jsonlog);
+		//消费记录上传
+		UploadMisBySocket(str_json);
+		//写入待上传文件
+		WriteInFile(PREUPLOADFILE, str_json);
+		//UploadMisBySocket(str_json);
+	}
+	else
+	{
+		return rc;
+	}
+	
+}
+int ConsumeQR(int opFare,LPSTR QRcode, LPSTR jyDT,char* outJsonMsg,char* tac)
+{
+	W_ReadCardLog("ConsumeQR===================START");
+	Json::Value sendvalue;
+	string orgcode(GetValueInIni("MIS", "ORGCODE", iniFileName));
+	string serialNo(GetValueInIni("MIS", "SERIALNO", iniFileName));
+	sendvalue["organizationCode"] = orgcode;
+	sendvalue["serialNumber"] = serialNo;
+	sendvalue["method"] = "pay";
+	//使用17位时间戳作为订单号
+	std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+		std::chrono::system_clock::now().time_since_epoch());
+	sendvalue["content"]["orderNo"] = ms.count();
+	sendvalue["content"]["orderTime"] = TransDate(jyDT);
+	sendvalue["content"]["txnAmt"] = opFare;
+	sendvalue["content"]["termId"] = atoll(GetValueInIni("MIS", "TERMID", iniFileName));//终端号
+	sendvalue["content"]["reqType"] = "门诊消费";
+	sendvalue["content"]["couponInfo"] = 0;
+	sendvalue["content"]["qrNo"] = QRcode;
+	sendvalue["content"]["merId"] = GetValueInIni("MIS", "MERID", iniFileName);
+	sendvalue["content"]["merCatCode"] = GetValueInIni("MIS", "MERCATCODE", iniFileName);
+	sendvalue["content"]["merName"] = GetValueInIni("MIS", "MERNAME", iniFileName);
+	string sendJson = sendvalue.toStyledString();
+	char _send_buff[20480] = { 0 };
+
+	//memcpy(_send_buff, sendJson.c_str(), sendJson.length);
+	strcpy(_send_buff, sendJson.c_str());
+	W_ReadCardLog(_send_buff);
+	//提交接口
+	LPSTR req_ip;
+	req_ip = GetValueInIni("MIS", "BCNIP", iniFileName);
+	short _port = GetPrivateProfileIntA("MIS", "BCNPORT", 80, iniFileName);
+	char req_resv[20480] = { 0 };
+	long ret_sendpost = SendPostRequest(req_ip, _port, _send_buff, req_resv);
+	if (0 == ret_sendpost)
+	{
+		char _rev_temp[20480] = { 0 };
+		TransCharacter(req_resv, _rev_temp);
+		//截取json
+		string str_rev(_rev_temp);
+		string json_rel;
+		int json_bg = str_rev.find_first_of("{", 0);
+		int json_end = str_rev.find_last_of("}");
+		if (json_end > json_bg)
+		{
+			json_rel = str_rev.substr(json_bg, json_end - json_bg + 1);
+			json_rel = "二维码消费返回： " + json_rel;
+			W_ReadCardLog(json_rel.c_str());
+			strcpy(outJsonMsg, json_rel.c_str());
+			//返回Json示例：
+			//{"code":"R00000","content":{"data":{"orderNo":"1558334758179","payResult":"成功","autoCode":"0","termId":"1"}},"desc":"支付成功","flag":1}
+			Json::Value root;
+			//js_vl.clear();
+			Json::Reader reader;
+			try
+			{
+				if (reader.parse(json_rel, root))
+				{
+					if (root["flag"].asString() == "1")
+					{
+						W_ReadCardLog("INFO 支付成功");
+						char tac_temp[20] = { 0 };
+						_i64toa(ms.count(), tac_temp, 10);
+						strcpy(tac, tac_temp);
+						return 0;
+					}
+					else
+					{
+						W_ReadCardLog("ERROR 支付失败");
+						return -11;
+					}
+				}
+			}
+			catch (const std::exception&ex)
+			{
+				//解析json失败
+				W_ReadCardLog("ERROR JSON解析异常");
+				return -13;
+			}
+		}
+		else
+		{
+			W_ReadCardLog("ERROR 返回信息格式有误");
+			return -12;
+		}
+	}
+	else
+	{
+		W_ReadCardLog("ERROR 前置服务器访问异常");
+		return ret_sendpost;
+	}
 }
 //扣款
-long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT, __int64 *psamID, long *psamJyNo, char *tac, int redix)
+long _stdcall CapSetNBCardInfo_Str_old(long objNo, long uid, long opFare, LPSTR jyDT, __int64 *psamID, long *psamJyNo, char *tac, int redix)
 {
 	W_ReadCardLog("CapSetNBCardInfo_Str=================START");
 	//先确认支付方式
@@ -2563,14 +2841,12 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 			sprintf(amount_temp, "%012.12d", opFare);
 			amount_temp[12] = '\0';
 			memcpy(st_in.TransAmount, amount_temp, 12);
-
 			memcpy(st_in.MisTraceNo, _mistradeno, 6);
 			W_ReadCardLog("INFO 扣费参数传入完毕");
 			int rc = -1;
 			try
 			{
 				rc = trans(&st_in, &st_out);
-
 			}
 			catch (const std::exception&)
 			{
@@ -2648,6 +2924,55 @@ long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT
 		//二维码扣费返回-3在这里处理
 	}
 
+
+
+
+}
+long _stdcall CapSetNBCardInfo_Str(long objNo, long uid, long opFare, LPSTR jyDT, __int64 *psamID, long *psamJyNo, char *tac, int redix)
+{
+	W_ReadCardLog("CapSetNBCardInfo_Str=================START");
+	//二维码扣费
+	//判断上次扫码成功距现在时间少于20秒，则认为是二维码扣费
+	int LAST_GBC = atoi(GetTotalArg(TOTALGBC));
+	int P = (int)(clock() - LAST_GBC) / CLOCKS_PER_SEC;
+	char t_log[100];
+	sprintf(t_log, "上次扫码时间：%d，现在时间：%d，间隔%d秒", LAST_GBC, (int)clock(), P);
+	W_ReadCardLog(t_log);
+	if (P<20)
+	{
+		char outJson[1024];
+		int ret = ConsumeQR(opFare,ALLQRCODE, jyDT, outJson,tac);
+		if (ret==0)
+		{
+			Json::Value root;
+			//js_vl.clear();
+			Json::Reader reader;
+			reader.parse(outJson, root);
+			*psamID = atoll(GetValueInIni("MIS", "TERMID", iniFileName));
+			*psamJyNo = atol(root["content"]["data"]["autoCode"].asString().c_str());
+			return 0;
+		}
+		else
+		{
+			return ret;
+		}
+	}
+	//银行卡消费
+	else
+	{
+		int rc = ConsumeMis(opFare, psamID, tac, psamJyNo);
+		int j = 0;
+		while((rc == -3) && (j < 15))
+		{
+			j++;
+			Sleep(500);
+			rc = ConsumeMis(opFare, psamID, tac, psamJyNo);
+		}
+		char koufei_log[100];
+		sprintf(koufei_log, "经过%d次循环，扣费返回值为%d", j, rc);
+		W_ReadCardLog(koufei_log);
+		return rc;
+	}
 
 
 
@@ -3384,6 +3709,57 @@ int WINAPI MisRund(long opFare, LPSTR ReferNo, LPSTR TransDate, LPSTR TerminalId
 	memcpy(st_in.TransDate, date_temp, 8);
 	memcpy(st_in.TerminalId, terminal_temp, 15);
 
+	int rc = trans(&st_in, &st_out);
+	//char info[300] = { 0 };
+	//if (0 == rc)
+	//{
+	//	//memcpy(info, st_out.Remark, sizeof(st_out.Remark));
+	//	//strcpy(info, st_out.Remark);
+	//	std::string strTemp(st_out.Remark);
+	//	strTemp.erase(strTemp.find_last_not_of(" ") + 1);
+	//	strcpy(info, strTemp.c_str());
+	//}
+	//FreeLibrary(hdllInst);
+	return rc;
+}
+int WINAPI MisRund_NoCard(long opFare, LPSTR ReferNo, LPSTR TransDate, LPSTR TerminalId,LPSTR cardno,LPSTR yxq)
+{
+	//HMODULE hdllInst = LoadLibraryA("KeeperClient.dll");
+	_mistrans trans = (_mistrans)GetProcAddress(hdllInst, "misposTrans");
+
+	ST_MISPOS_IN st_in;
+	ST_MISPOS_OUT st_out;
+	memset(&st_in, 0x00, sizeof(ST_MISPOS_IN));
+	memset(&st_out, 0x00, sizeof(ST_MISPOS_OUT));
+	memcpy(st_in.TransType, "04", 2);
+	char amount_temp[13] = { 0 };
+	char refer_temp[9] = { 0 };
+	char terminal_temp[16] = { 0 };
+	char date_temp[9] = { 0 };
+
+	//sprintf(amount_temp, "%012d", opFare);
+	//sprintf(refer_temp, "%08s", ReferNo);
+	//sprintf(terminal_temp, "%015s", TerminalId);
+
+
+	sprintf(refer_temp, "%08.8s", ReferNo);
+	refer_temp[8] = '\0';
+	sprintf(terminal_temp, "%-15.15s", TerminalId);
+	terminal_temp[15] = '\0';
+	sprintf(amount_temp, "%012.12d", opFare);
+	amount_temp[12] = '\0';
+	sprintf(date_temp, "%08.8s", TransDate);
+	date_temp[8] = '\0';
+	/*strcpy(st_in.TransAmount, amount_temp);
+	strcpy(st_in.ReferNo, refer_temp);
+	strcpy(st_in.TransDate, TransDate);
+	strcpy(st_in.TerminalId, terminal_temp);*/
+	memcpy(st_in.TransAmount, amount_temp, 12);
+	memcpy(st_in.ReferNo, refer_temp, 8);
+	memcpy(st_in.TransDate, date_temp, 8);
+	memcpy(st_in.TerminalId, terminal_temp, 15);
+	memcpy(st_in.CardNo, cardno, 20);
+	memcpy(st_in.ExpDate, yxq, 7);
 	int rc = trans(&st_in, &st_out);
 	//char info[300] = { 0 };
 	//if (0 == rc)

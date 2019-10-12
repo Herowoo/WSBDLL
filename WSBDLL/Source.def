@@ -71,3 +71,4 @@ test1 @68
 GetComInputInfo_Temp @69
 MisRund @70
 GetBCNorIDC @71
+MisRund_NoCard @72
